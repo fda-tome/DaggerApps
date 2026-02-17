@@ -36,6 +36,9 @@ julia --project=apps/seam-carving -t16 -e 'include("benchmarks/scripts/seam-carv
 
 # Game of Life (single-node, threads-based)
 julia --project=apps/game-of-life -t16 -e 'include("benchmarks/scripts/game-of-life.jl"); run_benchmark()'
+
+# Heat propagation (single-node, threads-based)
+julia --project=apps/heat-propagation -t16 -e 'include("benchmarks/scripts/heat-propagation.jl"); run_benchmark()'
 ```
 
 If you want to run from an external project, develop the benchmarks package once:
@@ -44,6 +47,7 @@ If you want to run from an external project, develop the benchmarks package once
 julia --project=. -e 'using Pkg; Pkg.develop(path="/path/to/DaggerApps/benchmarks/scripts"); Pkg.instantiate()'
 julia --project=. -e 'using DaggerAppsBenchmarks; run_seam_carving()'
 julia --project=. -e 'using DaggerAppsBenchmarks; run_game_of_life()'
+julia --project=. -e 'using DaggerAppsBenchmarks; run_heat_propagation()'
 ```
 
 Notes for seam‑carving:
@@ -57,6 +61,16 @@ Notes for game-of-life:
 - Timing uses BenchmarkTools with a warmup run to avoid compilation time.
 - Strong scaling keeps `LIFE_ROWS`/`LIFE_COLS` fixed.
 - Weak scaling scales rows/cols with threads via `LIFE_WEAK_SCALE` (or explicit `LIFE_WEAK_ROWS`/`LIFE_WEAK_COLS`).
+- GPU variants can be enabled with any loaded backend (`CUDA`, `AMDGPU`, `oneAPI`, `Metal`) and selected via `LIFE_DEVICE`.
+- GPU-only matrix-size sweeps are available with `run_gpu_size_sweep(...)` in `benchmarks/scripts/game-of-life.jl`.
+
+Notes for heat-propagation:
+
+- Timing uses BenchmarkTools with a warmup run to avoid compilation time.
+- Strong scaling keeps `HEAT_ROWS`/`HEAT_COLS` fixed.
+- Weak scaling scales rows/cols with threads via `HEAT_WEAK_SCALE` (or explicit `HEAT_WEAK_ROWS`/`HEAT_WEAK_COLS`).
+- GPU variants can be enabled with any loaded backend (`CUDA`, `AMDGPU`, `oneAPI`, `Metal`) and selected via `HEAT_DEVICE`.
+- GPU-only matrix-size sweeps are available with `run_gpu_size_sweep(...)` in `benchmarks/scripts/heat-propagation.jl`.
 
 ## Folder layout
 

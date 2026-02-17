@@ -56,7 +56,7 @@ function run_all_benchmarks(apps::Vector{String}=ARGS)
 
     unknown = setdiff(selected, all_apps)
     if !isempty(unknown)
-        error("Unknown app(s): $(join(unknown, \", \")). Known: $(join(all_apps, \", \"))")
+        error("Unknown app(s): $(join(unknown, ", ")). Known: $(join(all_apps, ", "))")
     end
 
     for app in selected

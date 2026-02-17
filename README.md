@@ -9,6 +9,7 @@ DaggerApps/
 ├── apps/                      # Dagger applications (one folder per app)
 │   ├── barnes-hut/            # Barnes–Hut N-body simulation (placeholder)
 │   ├── game-of-life/          # Conway's Game of Life (stencil-based)
+│   ├── heat-propagation/      # 2D heat diffusion + animation
 │   └── seam-carving/          # Content-aware image resizing (seam carving)
 └── benchmarks/                # Optional benchmark suite for the apps
 ```
@@ -31,6 +32,18 @@ julia --project=apps/game-of-life -t16 -e 'include("benchmarks/scripts/game-of-l
 
 Results are written to `benchmarks/results/game-of-life/<timestamp>/`.
 
+Quick start (heat propagation animation):
+
+```bash
+julia --project=apps/heat-propagation apps/heat-propagation/scripts/animate.jl
+```
+
+Quick start (heat propagation benchmark):
+
+```bash
+julia --project=apps/heat-propagation -t16 -e 'include("benchmarks/scripts/heat-propagation.jl"); run_benchmark()'
+```
+
 ## External project usage
 
 From any other Julia project:
@@ -39,6 +52,7 @@ From any other Julia project:
 julia --project=. -e 'using Pkg; Pkg.develop(path="/path/to/DaggerApps/benchmarks/scripts"); Pkg.instantiate()'
 julia --project=. -e 'using DaggerAppsBenchmarks; run_seam_carving()'
 julia --project=. -e 'using DaggerAppsBenchmarks; run_game_of_life()'
+julia --project=. -e 'using DaggerAppsBenchmarks; run_heat_propagation()'
 ```
 
 This uses the `DaggerAppsBenchmarks` helper package (defined in `benchmarks/scripts/`).

@@ -21,4 +21,11 @@ Barnes–Hut (`benchmarks/results/barnes-hut/`):
 Game-of-life (`benchmarks/results/game-of-life/`):
 
 - `strong_scaling.csv` / `weak_scaling.csv`
-- Columns: `scenario,variant,threads,rows,cols,steps,block_h,block_w,density,run,time_sec`
+- Columns: `scenario,variant,device,threads,rows,cols,steps,block_h,block_w,density,run,time_sec`
+- GPU size sweep (optional): `gpu_size_sweep/gpu_size_sweep_runs.csv`, `gpu_size_sweep/gpu_size_sweep_summary.csv`, `gpu_size_sweep/gpu_size_sweep.png`
+
+Heat-propagation (`benchmarks/results/heat-propagation/`):
+
+- `strong_scaling.csv` / `weak_scaling.csv`
+- Columns: `scenario,variant,device,threads,rows,cols,steps,block_h,block_w,alpha,ambient,hotspot_temp,hotspot_radius,pad_value,run,time_sec`
+- GPU size sweep (optional): `gpu_size_sweep/gpu_size_sweep_runs.csv`, `gpu_size_sweep/gpu_size_sweep_summary.csv`, `gpu_size_sweep/gpu_size_sweep.png`

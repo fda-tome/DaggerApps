@@ -4,9 +4,12 @@
 !seam-carving/
 !barnes-hut/
 !game-of-life/
+!heat-propagation/
 seam-carving/*
 barnes-hut/*
 game-of-life/*
+heat-propagation/*
 !seam-carving/README.md
 !barnes-hut/README.md
 !game-of-life/README.md
+!heat-propagation/README.md
