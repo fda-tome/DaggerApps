@@ -8,6 +8,7 @@ A collection of Dagger.jl application folders (apps), plus optional benchmark sc
 DaggerApps/
 ├── apps/                      # Dagger applications (one folder per app)
 │   ├── barnes-hut/            # Barnes–Hut N-body simulation (placeholder)
+│   ├── game-of-life/          # Conway's Game of Life (stencil-based)
 │   └── seam-carving/          # Content-aware image resizing (seam carving)
 └── benchmarks/                # Optional benchmark suite for the apps
 ```
@@ -22,6 +23,14 @@ julia --project=apps/seam-carving -t16 -e 'include("benchmarks/scripts/seam-carv
 
 Results are written to `benchmarks/results/seam-carving/<timestamp>/`.
 
+Quick start (game-of-life benchmark):
+
+```bash
+julia --project=apps/game-of-life -t16 -e 'include("benchmarks/scripts/game-of-life.jl"); run_benchmark()'
+```
+
+Results are written to `benchmarks/results/game-of-life/<timestamp>/`.
+
 ## External project usage
 
 From any other Julia project:
@@ -29,6 +38,7 @@ From any other Julia project:
 ```bash
 julia --project=. -e 'using Pkg; Pkg.develop(path="/path/to/DaggerApps/benchmarks/scripts"); Pkg.instantiate()'
 julia --project=. -e 'using DaggerAppsBenchmarks; run_seam_carving()'
+julia --project=. -e 'using DaggerAppsBenchmarks; run_game_of_life()'
 ```
 
 This uses the `DaggerAppsBenchmarks` helper package (defined in `benchmarks/scripts/`).

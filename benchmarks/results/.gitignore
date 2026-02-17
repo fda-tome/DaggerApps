@@ -3,7 +3,10 @@
 !README.md
 !seam-carving/
 !barnes-hut/
+!game-of-life/
 seam-carving/*
 barnes-hut/*
+game-of-life/*
 !seam-carving/README.md
 !barnes-hut/README.md
+!game-of-life/README.md

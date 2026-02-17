@@ -17,3 +17,8 @@ Barnes–Hut (`benchmarks/results/barnes-hut/`):
 
 - `strong_scaling.csv` / `weak_scaling.csv`
 - Columns: `scenario,dagger_processors,N,theta,run,time_sec`
+
+Game-of-life (`benchmarks/results/game-of-life/`):
+
+- `strong_scaling.csv` / `weak_scaling.csv`
+- Columns: `scenario,variant,threads,rows,cols,steps,block_h,block_w,density,run,time_sec`

@@ -15,4 +15,5 @@ For app‑specific entry points and examples, see each app’s `README.md`.
 ## Current apps
 
 - `barnes-hut/`: Barnes–Hut N‑body simulation (placeholder).
+- `game-of-life/`: Conway's Game of Life (serial + Dagger stencil implementation).
 - `seam-carving/`: Content‑aware image resizing (implemented).
