@@ -1,0 +1,8 @@
+[
+  {
+    "id": "l1_basic_spawn",
+    "name": "l1_basic_spawn",
+    "task_file": "l1_basic_spawn.c",
+    "prompt": "Using PaRSEC (C), write a program that performs a simple parallel computation and prints exactly PASS on the last line and exits with 0. Provide only the C code in a single ```c ... ``` block."
+  }
+]

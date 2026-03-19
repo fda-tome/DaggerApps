@@ -1,0 +1,8 @@
+[
+  {
+    "id": "l1_basic_spawn",
+    "name": "l1_basic_spawn",
+    "task_file": "l1_basic_spawn.py",
+    "prompt": "Using Legate (Python with NumPy/CuPy), write a script that performs a simple parallel sum over 4 arrays and prints exactly PASS on the last line on success. Provide only the Python code in a single ```python ... ``` block."
+  }
+]

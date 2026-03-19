@@ -1,0 +1,74 @@
+#!/bin/bash
+#PBS -N dagger-llm-full
+#PBS -A PROJECT_ALLOCATION
+#PBS -l select=1:system=polaris
+#PBS -l walltime=04:00:00
+#PBS -l filesystems=home:eagle
+#PBS -q debug
+#PBS -j oe
+#PBS -o dagger_full_%j.out
+
+# Full pipeline on one Polaris node: Generate (Ollama) + Evaluate + Analyze.
+# Requires: Ollama installed (e.g. in $HOME/bin or via module) and a model pulled.
+# Set OLLAMA_MODEL and N_SAMPLES via qsub -v if needed.
+
+set -euo pipefail
+cd "${PBS_O_WORKDIR:-$HOME/dagger-llm-study}"
+
+REPO_ROOT="${REPO_ROOT:-$(pwd)}"
+cd "$REPO_ROOT"
+
+OLLAMA_MODEL="${OLLAMA_MODEL:-qwen2.5-coder:7b}"
+N_SAMPLES="${N_SAMPLES:-5}"
+OUT_NAME="${OUT_NAME:-polaris_full}"
+
+# --- Environment ---
+export PATH="$REPO_ROOT/.venv/bin:${HOME}/bin:$PATH"
+# module load conda  # uncomment if you use conda on Polaris
+# source activate dagger-study
+
+# --- Start Ollama in background (must be in PATH) ---
+if ! command -v ollama &>/dev/null; then
+  echo "Ollama not found. Install to \$HOME/bin or load a module. See docs/ALCF_ONE_NODE.md"
+  exit 1
+fi
+ollama serve &
+OLLAMA_PID=$!
+trap "kill $OLLAMA_PID 2>/dev/null || true" EXIT
+echo "Waiting for Ollama to be ready..."
+for i in $(seq 1 30); do
+  curl -s http://localhost:11434/api/tags >/dev/null 2>&1 && break
+  sleep 2
+done
+curl -s http://localhost:11434/api/tags >/dev/null 2>&1 || { echo "Ollama did not start."; exit 1; }
+
+# --- Phase 1: Generate ---
+echo "Phase 1: Generate ($OLLAMA_MODEL, n=$N_SAMPLES)..."
+julia --project=. src/generate.jl --model "$OLLAMA_MODEL" --n-samples "$N_SAMPLES" \
+  --api-base http://localhost:11434/v1 \
+  --output "outputs/generated/${OUT_NAME}.jsonl"
+
+GENERATED="outputs/generated/${OUT_NAME}.jsonl"
+if [ ! -f "$GENERATED" ]; then
+  echo "Generate failed."
+  exit 1
+fi
+
+# --- Phase 2: Evaluate ---
+echo "Phase 2: Evaluate..."
+julia --project=. src/evaluate.jl "$GENERATED"
+
+EVAL="outputs/evaluated/evaluated_${OUT_NAME}.jsonl"
+if [ ! -f "$EVAL" ]; then
+  EVAL=$(ls -t outputs/evaluated/*.jsonl 2>/dev/null | head -1)
+fi
+if [ -z "$EVAL" ] || [ ! -f "$EVAL" ]; then
+  echo "Evaluate failed."
+  exit 1
+fi
+
+# --- Phase 3: Analyze ---
+echo "Phase 3: Analyze..."
+julia --project=. src/analyze.jl "$EVAL"
+
+echo "Done. Check figures/ and tables/."

@@ -1,0 +1,5 @@
+outputs/generated/*.jsonl
+outputs/evaluated/*.jsonl
+figures/*.pdf
+tables/*.tex
+*.log

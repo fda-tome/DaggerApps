@@ -10,6 +10,7 @@ DaggerApps/
 │   ├── barnes-hut/            # Barnes–Hut N-body simulation (distributed, Morton Z-curve)
 │   ├── game-of-life/          # Conway's Game of Life (stencil-based)
 │   ├── heat-propagation/      # 2D heat diffusion + animation
+│   ├── pass-at-k-study/       # LLM pass@k comparative benchmark app
 │   └── seam-carving/          # Content-aware image resizing (seam carving)
 └── benchmarks/                # Optional benchmark suite for the apps
 ```
@@ -31,6 +32,13 @@ julia --project=apps/game-of-life -t16 -e 'include("benchmarks/scripts/game-of-l
 ```
 
 Results are written to `benchmarks/results/game-of-life/<timestamp>/`.
+
+Quick start (pass@k study app):
+
+```bash
+julia --project=apps/pass-at-k-study -e 'using Pkg; Pkg.instantiate()'
+bash apps/pass-at-k-study/scripts/run_smoke_test.sh
+```
 
 Quick start (heat propagation animation):
 

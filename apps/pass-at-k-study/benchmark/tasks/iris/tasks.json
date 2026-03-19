@@ -1,0 +1,8 @@
+[
+  {
+    "id": "l1_basic_spawn",
+    "name": "l1_basic_spawn",
+    "task_file": "l1_basic_spawn.cpp",
+    "prompt": "Using the Iris runtime (C++), write a program that spawns 4 independent tasks, each computing the sum of a small array, and collects the 4 results. The program must print exactly PASS on the last line and exit with code 0 on success. Provide only the C++ code in a single ```cpp ... ``` block."
+  }
+]

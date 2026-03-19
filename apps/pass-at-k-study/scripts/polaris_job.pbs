@@ -1,0 +1,56 @@
+#!/bin/bash
+#PBS -N dagger-llm-study
+#PBS -A PROJECT_ALLOCATION
+#PBS -l select=1:system=polaris
+#PBS -l walltime=02:00:00
+#PBS -l filesystems=home:eagle
+#PBS -q debug
+#PBS -j oe
+#PBS -o dagger_study_%j.out
+
+# Run the Dagger LLM study on one Polaris node (4x NVIDIA A100 per node).
+# Option A: Generate elsewhere; copy outputs/generated/*.jsonl here; run eval+analyze only.
+# Option B: Set GENERATE_ON_NODE=1 and use polaris_full_job.pbs, or run inference in this script.
+
+set -euo pipefail
+cd "${PBS_O_WORKDIR:-$HOME/dagger-llm-study}"
+
+REPO_ROOT="${REPO_ROOT:-$(pwd)}"
+cd "$REPO_ROOT"
+
+# --- Environment (adjust for Polaris modules) ---
+# module load conda  # or module load cray-python + venv
+# source activate dagger-study
+export PATH="$REPO_ROOT/.venv/bin:$PATH"
+
+# --- Phase 1: Generate (optional) ---
+if [ "${GENERATE_ON_NODE:-0}" = "1" ]; then
+  echo "Phase 1: Generate on node..."
+  # Use polaris_full_job.pbs or start Ollama/API here, then:
+  # julia --project=. src/generate.jl --model ... --api-base http://localhost:11434/v1 --n-samples 5 --output outputs/generated/polaris.jsonl
+  echo "Set GENERATE_ON_NODE=1 and run inference (e.g. Ollama); see docs/ALCF_ONE_NODE.md"
+  exit 1
+fi
+
+# --- Phase 2: Evaluate ---
+GENERATED="${GENERATED:-}"
+if [ -z "$GENERATED" ]; then
+  GENERATED=$(ls -t outputs/generated/*.jsonl 2>/dev/null | head -1)
+fi
+if [ -z "$GENERATED" ] || [ ! -f "$GENERATED" ]; then
+  echo "No generated JSONL. Copy outputs/generated/*.jsonl or set GENERATED=path."
+  exit 1
+fi
+echo "Phase 2: Evaluate $GENERATED ..."
+julia --project=. src/evaluate.jl "$GENERATED"
+
+# --- Phase 3: Analyze ---
+EVAL=$(ls -t outputs/evaluated/*.jsonl 2>/dev/null | head -1)
+if [ -z "$EVAL" ] || [ ! -f "$EVAL" ]; then
+  echo "No evaluated file."
+  exit 1
+fi
+echo "Phase 3: Analyze $EVAL ..."
+julia --project=. src/analyze.jl "$EVAL"
+
+echo "Done. Check figures/ and tables/."

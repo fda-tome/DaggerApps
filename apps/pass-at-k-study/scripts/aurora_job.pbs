@@ -1,0 +1,57 @@
+#!/bin/bash
+#PBS -N dagger-llm-study
+#PBS -A PROJECT_ALLOCATION
+#PBS -l select=1
+#PBS -l walltime=02:00:00
+#PBS -l filesystems=home:flare
+#PBS -q debug
+#PBS -j oe
+#PBS -o dagger_study_%j.out
+
+# Run the Dagger LLM study on one Aurora node.
+# Option A: Generate elsewhere; copy outputs/generated/*.jsonl to $WORK; run eval+analyze only.
+# Option B: Run full pipeline if GENERATE_ON_NODE=1 and inference is set up (see docs).
+
+set -euo pipefail
+cd "${PBS_O_WORKDIR:-$HOME/dagger-llm-study}"
+
+REPO_ROOT="${REPO_ROOT:-$(pwd)}"
+cd "$REPO_ROOT"
+
+# --- Environment (adjust for Aurora modules / conda) ---
+# module load conda  # or whatever ALCF provides
+# source activate dagger-study
+export PATH="$REPO_ROOT/.venv/bin:$PATH"  # if you copied a venv or use system Python
+
+# --- Phase 1: Generate (only if you have LLM inference on the node) ---
+# By default we skip and assume you copied outputs/generated/*.jsonl from elsewhere.
+if [ "${GENERATE_ON_NODE:-0}" = "1" ]; then
+  echo "Phase 1: Generate on node..."
+  # Example: run Ollama or another backend; then:
+  # julia --project=. src/generate.jl --model ... --api-base http://localhost:11434/v1 --output outputs/generated/aurora.jsonl
+  echo "Set up inference (Ollama/llama.cpp/API) and run generate.jl; exiting."
+  exit 1
+fi
+
+# --- Phase 2: Evaluate (Julia + Dagger; can use Intel GPUs via oneAPI in task_utils) ---
+GENERATED="${GENERATED:-}"
+if [ -z "$GENERATED" ]; then
+  GENERATED=$(ls -t outputs/generated/*.jsonl 2>/dev/null | head -1)
+fi
+if [ -z "$GENERATED" ] || [ ! -f "$GENERATED" ]; then
+  echo "No generated JSONL. Copy outputs/generated/*.jsonl to $REPO_ROOT/outputs/generated/ or set GENERATED=path."
+  exit 1
+fi
+echo "Phase 2: Evaluate $GENERATED ..."
+julia --project=. src/evaluate.jl "$GENERATED"
+
+# --- Phase 3: Analyze ---
+EVAL=$(ls -t outputs/evaluated/*.jsonl 2>/dev/null | head -1)
+if [ -z "$EVAL" ] || [ ! -f "$EVAL" ]; then
+  echo "No evaluated file."
+  exit 1
+fi
+echo "Phase 3: Analyze $EVAL ..."
+julia --project=. src/analyze.jl "$EVAL"
+
+echo "Done. Check figures/ and tables/."
