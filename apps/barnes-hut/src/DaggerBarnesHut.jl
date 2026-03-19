@@ -82,6 +82,7 @@ end
 # ------------------------------------------------------------------------------
 
 mutable struct OctNode
+    geom_center::SVector{3,Float64}  # geometric center of the cell
     center::SVector{3,Float64}
     mass::Float64
     size::Float64  # side length of cell
@@ -89,28 +90,39 @@ mutable struct OctNode
     leaf_indices::Vector{Int}  # particle indices in this leaf (empty if internal)
 end
 
-function OctNode(center::SVector{3,Float64}, mass::Float64, size::Float64)
-    OctNode(center, mass, size, nothing, Int[])
+function OctNode(geom_center::SVector{3,Float64}, center::SVector{3,Float64}, mass::Float64, size::Float64)
+    OctNode(geom_center, center, mass, size, nothing, Int[])
 end
 
-function OctNode(center::SVector{3,Float64}, mass::Float64, size::Float64, indices::Vector{Int})
-    OctNode(center, mass, size, nothing, indices)
+function OctNode(geom_center::SVector{3,Float64}, center::SVector{3,Float64}, mass::Float64, size::Float64, indices::Vector{Int})
+    OctNode(geom_center, center, mass, size, nothing, indices)
 end
 
 function is_leaf(n::OctNode)
     n.children === nothing
 end
 
+@inline function _node_contains_index(node::OctNode, idx::Int)::Bool
+    if is_leaf(node)
+        return idx in node.leaf_indices
+    end
+    @inbounds for ch in node.children
+        _node_contains_index(ch, idx) && return true
+    end
+    return false
+end
+
 # Build octree from Morton-sorted particle indices (positions and masses)
 function build_octree!(pos::AbstractMatrix{Float64}, mass::Vector{Float64}, sorted_indices::AbstractVector{Int}, lo::Int, hi::Int, box_lo::SVector{3,Float64}, box_size::Float64)::OctNode
     n = hi - lo + 1
     if n <= 0
-        return OctNode(box_lo + SVector(box_size/2, box_size/2, box_size/2), 0.0, box_size)
+        gc = box_lo + SVector(box_size / 2, box_size / 2, box_size / 2)
+        return OctNode(gc, gc, 0.0, box_size)
     end
     if n == 1
         i = sorted_indices[lo]
         c = SVector(pos[1,i], pos[2,i], pos[3,i])
-        return OctNode(c, mass[i], box_size, [i])
+        return OctNode(c, c, mass[i], box_size, [i])
     end
     # Compute center of mass and total mass
     m_tot = 0.0
@@ -124,7 +136,7 @@ function build_octree!(pos::AbstractMatrix{Float64}, mass::Vector{Float64}, sort
     end
     inv_m = 1.0 / m_tot
     center = SVector(cx * inv_m, cy * inv_m, cz * inv_m)
-    node = OctNode(center, m_tot, box_size)
+    node = OctNode(box_lo + SVector(box_size / 2, box_size / 2, box_size / 2), center, m_tot, box_size)
     # Subdivide into 8 octants (Morton order: 0..7)
     half = box_size / 2
     children = Vector{OctNode}(undef, 8)
@@ -151,7 +163,8 @@ function build_octree!(pos::AbstractMatrix{Float64}, mass::Vector{Float64}, sort
         if count_oct > 0
             children[oct+1] = build_octree!(pos, mass, sorted_indices, lo, start - 1, o_lo, half)
         else
-            children[oct+1] = OctNode(o_lo + SVector(half/2, half/2, half/2), 0.0, half)
+            gc = o_lo + SVector(half / 2, half / 2, half / 2)
+            children[oct+1] = OctNode(gc, gc, 0.0, half)
         end
         lo = start
     end
@@ -161,15 +174,12 @@ end
 
 # Simpler: build from sorted index range by recursive split along longest axis (KD-style) to avoid complex octant partitioning
 function _split_sorted!(pos::AbstractMatrix{Float64}, mass::Vector{Float64}, idx::Vector{Int}, lo::Int, hi::Int, box_lo::SVector{3,Float64}, box_size::Float64)::OctNode
+    geom_center = box_lo + SVector(box_size / 2, box_size / 2, box_size / 2)
     n = hi - lo + 1
     if n <= 0
-        return OctNode(box_lo + SVector(box_size/2, box_size/2, box_size/2), 0.0, box_size)
+        return OctNode(geom_center, geom_center, 0.0, box_size)
     end
-    if n == 1
-        i = idx[lo]
-        c = SVector(pos[1,i], pos[2,i], pos[3,i])
-        return OctNode(c, mass[i], box_size, [i])
-    end
+    LEAF_CAPACITY = 16
     m_tot = 0.0
     cx = cy = cz = 0.0
     for k in lo:hi
@@ -180,17 +190,32 @@ function _split_sorted!(pos::AbstractMatrix{Float64}, mass::Vector{Float64}, idx
         cz += pos[3,i] * mass[i]
     end
     inv_m = 1.0 / m_tot
-    center = SVector(cx * inv_m, cy * inv_m, cz * inv_m)
-    node = OctNode(center, m_tot, box_size)
-    # Split along axis with largest extent at median (by position along that axis)
-    ext = (box_size, box_size, box_size)
+    com = SVector(cx * inv_m, cy * inv_m, cz * inv_m)
+    if n <= LEAF_CAPACITY
+        return OctNode(geom_center, com, m_tot, box_size, idx[lo:hi])
+    end
+    node = OctNode(geom_center, com, m_tot, box_size)
+    # Split along axis with largest data extent at median.
+    xmin = ymin = zmin = Inf
+    xmax = ymax = zmax = -Inf
+    @inbounds for k in lo:hi
+        i = idx[k]
+        x = pos[1, i]
+        y = pos[2, i]
+        z = pos[3, i]
+        xmin = min(xmin, x); xmax = max(xmax, x)
+        ymin = min(ymin, y); ymax = max(ymax, y)
+        zmin = min(zmin, z); zmax = max(zmax, z)
+    end
+    ext = (xmax - xmin, ymax - ymin, zmax - zmin)
     ax = argmax(ext)
     mid = (lo + hi) >> 1
     # Partial sort to get median along axis ax
-    ax_vals = [pos[ax, idx[k]] for k in lo:hi]
+    segment = copy(@view idx[lo:hi])
+    ax_vals = [pos[ax, segment[p]] for p in 1:length(segment)]
     perm = sortperm(ax_vals)
-    for (p, k) in enumerate(lo:hi)
-        idx[k] = idx[lo - 1 + perm[p]]
+    @inbounds for (p, k) in enumerate(lo:hi)
+        idx[k] = segment[perm[p]]
     end
     half = box_size / 2
     o_lo_low = box_lo
@@ -210,7 +235,8 @@ function build_octree(pos::AbstractMatrix{Float64}, mass::Vector{Float64}; sorte
     N = size(pos, 2)
     idx = sorted_indices === nothing ? collect(1:N) : copy(collect(sorted_indices))
     if length(idx) == 0
-        return OctNode(SVector(0.5, 0.5, 0.5), 0.0, 1.0)
+        gc = SVector(0.5, 0.5, 0.5)
+        return OctNode(gc, gc, 0.0, 1.0)
     end
     box_lo = SVector(0.0, 0.0, 0.0)
     box_size = 1.0
@@ -241,8 +267,12 @@ function force_from_node!(acc::Vector{Float64}, pos_i::SVector{3,Float64}, node:
         end
         return
     end
-    # Internal node: theta criterion
-    if node.size / d <= theta
+    # Internal node: stricter COM-offset criterion.
+    # Never accept a node that still contains the target particle.
+    # Use d_eff = d - ||COM - geometric_center|| to penalize lopsided nodes.
+    delta = norm(node.center - node.geom_center)
+    d_eff = max(d - delta, sqrt(eps2))
+    if !_node_contains_index(node, skip_index) && node.size / d_eff <= theta
         f = G * node.mass / d2
         inv_d = 1.0 / d
         acc[1] += f * r[1] * inv_d
