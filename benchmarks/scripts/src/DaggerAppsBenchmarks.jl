@@ -1,6 +1,7 @@
 module DaggerAppsBenchmarks
 
 export run_seam_carving, load_seam_carving, run_game_of_life, load_game_of_life, run_heat_propagation, load_heat_propagation
+export run_barnes_hut, load_barnes_hut
 export run_game_of_life_gpu_size_sweep, run_heat_propagation_gpu_size_sweep
 
 const _seam_loaded = Ref(false)
@@ -12,6 +13,9 @@ const _life_mod = Ref{Union{Nothing, Module}}(nothing)
 const _heat_loaded = Ref(false)
 const _heat_run = Ref{Union{Nothing, Function}}(nothing)
 const _heat_mod = Ref{Union{Nothing, Module}}(nothing)
+const _barnes_loaded = Ref(false)
+const _barnes_run = Ref{Union{Nothing, Function}}(nothing)
+const _barnes_mod = Ref{Union{Nothing, Module}}(nothing)
 
 function _load_runner(path::AbstractString, modname::Symbol)
     mod = if isdefined(@__MODULE__, modname)
@@ -91,6 +95,24 @@ function run_heat_propagation_gpu_size_sweep(; kwargs...)
     mod = _heat_mod[]
     mod === nothing && error("Heat-propagation benchmark module was not loaded.")
     runner = Core.eval(mod, :run_gpu_size_sweep)
+    return Base.invokelatest(runner; kwargs...)
+end
+
+function load_barnes_hut()
+    if !_barnes_loaded[]
+        path = joinpath(@__DIR__, "..", "barnes-hut.jl")
+        mod, runner = _load_runner(path, :BarnesHutBench)
+        _barnes_mod[] = mod
+        _barnes_run[] = runner
+        _barnes_loaded[] = true
+    end
+    return nothing
+end
+
+function run_barnes_hut(; kwargs...)
+    load_barnes_hut()
+    runner = _barnes_run[]
+    runner === nothing && error("run_benchmark was not loaded for barnes-hut.")
     return Base.invokelatest(runner; kwargs...)
 end
 

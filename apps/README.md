@@ -14,7 +14,7 @@ For app‑specific entry points and examples, see each app’s `README.md`.
 
 ## Current apps
 
-- `barnes-hut/`: Barnes–Hut N‑body simulation (placeholder).
+- `barnes-hut/`: Barnes–Hut N‑body simulation (distributed, Morton Z-curve, Dagger).
 - `game-of-life/`: Conway's Game of Life (serial + Dagger stencil implementation).
 - `heat-propagation/`: 2D heat diffusion with Dagger stencils and GIF animation helper.
 - `seam-carving/`: Content‑aware image resizing (implemented).

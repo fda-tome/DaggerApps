@@ -1,0 +1,9 @@
+name = "DaggerBarnesHut"
+uuid = "a1b2c3d4-e5f6-7890-abcd-ef1234567890"
+version = "0.0.1"
+
+[deps]
+Dagger = "d58978e5-989f-55fb-8d15-ea34adc7bf54"
+Distributed = "8ba89e20-285c-5b6f-9357-94700520ee1b"
+StaticArrays = "90137ffa-7385-5640-81b9-e52037218182"
+BenchmarkTools = "6e4b80f9-dd63-53aa-95a3-0cdb28fa8baf"
