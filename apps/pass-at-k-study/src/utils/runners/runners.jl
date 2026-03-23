@@ -64,14 +64,14 @@ function run_iris(task_name::String, task_file::String, code::String, response_r
     end
 end
 
-"""Legate runner: Python. Set `LEGATE_RUN_CMD` or `LEGATE_PYTHON` (see docs/RUNNER_ENV.md). Default: `python <script>`."""
+"""Legate runner: Python. Set `LEGATE_RUN_CMD` or `LEGATE_PYTHON` (see docs/RUNNER_ENV.md). Default: `python3 <script>` (portable refs use NumPy only; conda Legate → set `LEGATE_PYTHON`)."""
 function run_legate(task_name::String, task_file::String, code::String, response_raw::String; timeout_sec::Real=120.0)
     dir = mktempdir()
     try
         script = endswith(task_file, ".py") ? task_file : "solution.py"
         script_path = joinpath(dir, script)
         write(script_path, code)
-        default_py = get(ENV, "LEGATE_PYTHON", "python")
+        default_py = get(ENV, "LEGATE_PYTHON", "python3")
         env_leg = get(ENV, "LEGATE_RUN_CMD", "")
         run_cmd = if isempty(strip(env_leg))
             default_py * " " * script

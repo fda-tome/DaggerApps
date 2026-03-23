@@ -54,5 +54,33 @@
     "realm": "robust_aggregation",
     "title": "Fault-tolerant distributed aggregation",
     "prompt_template": "You are writing code for {{RUNTIME_NAME}}.\n\nUse the provided local documentation excerpts as the primary context. Treat these links as metadata/citation only:\n- Repository: {{RUNTIME_REPO_URL}}\n- Documentation: {{RUNTIME_DOCS_URL}}\n\nTask:\nWrite a complete {{LANGUAGE_NAME}} program that launches multiple distributed subtasks, tolerates per-subtask invalid outputs/errors, and aggregates only valid results.\n\nRequirements:\n1) Include an explicit invalid/failure path for at least one subtask.\n2) Aggregate valid results deterministically and validate against a reference expected value.\n3) Print exactly PASS on the last line if checks pass; otherwise print FAIL.\n4) Exit successfully on PASS.\n\nOutput rules:\n- Return only a single fenced code block tagged {{CODE_FENCE_LANG}}.\n- Include no explanation outside the code block."
+  },
+  {
+    "id": "l3_assignment_pinning",
+    "level": 3,
+    "realm": "partition_assignment",
+    "title": "Pinned partition assignment for distributed GEMM",
+    "prompt_template": "You are writing code for {{RUNTIME_NAME}}.\n\nUse the provided local documentation excerpts as the primary context. Treat these links as metadata/citation only:\n- Repository: {{RUNTIME_REPO_URL}}\n- Documentation: {{RUNTIME_DOCS_URL}}\n\nTask:\nWrite a complete {{LANGUAGE_NAME}} program that partitions a dense matrix multiply into a grid of tiles/blocks and pins each tile to a specific execution unit in a round-robin pattern (e.g. by index arithmetic modulo the number of units), then performs the multiply and validates the result.\n\nRequirements:\n1) Use the runtime's partitioning and placement/assignment controls.\n2) Ensure every output element is produced exactly once (correct tiling).\n3) Validate numeric sanity (finite values, expected dimensions).\n4) Print exactly PASS on the last line if checks pass; otherwise print FAIL.\n5) Exit successfully on PASS.\n\nOutput rules:\n- Return only a single fenced code block tagged {{CODE_FENCE_LANG}}.\n- Include no explanation outside the code block."
+  },
+  {
+    "id": "l3_tiled_gemm_datadeps",
+    "level": 3,
+    "realm": "data_dependencies",
+    "title": "Tiled GEMM with explicit data-dependency annotations",
+    "prompt_template": "You are writing code for {{RUNTIME_NAME}}.\n\nUse the provided local documentation excerpts as the primary context. Treat these links as metadata/citation only:\n- Repository: {{RUNTIME_REPO_URL}}\n- Documentation: {{RUNTIME_DOCS_URL}}\n\nTask:\nWrite a complete {{LANGUAGE_NAME}} program that performs a tiled matrix multiply using explicit read/write or dependency annotations between distributed tiles (so the runtime can order communication/compute safely).\n\nRequirements:\n1) Express dependencies between producer and consumer tiles.\n2) Produce a full result matrix consistent with dense GEMM semantics.\n3) Validate dimensions and finite numeric output.\n4) Print exactly PASS on the last line if checks pass; otherwise print FAIL.\n5) Exit successfully on PASS.\n\nOutput rules:\n- Return only a single fenced code block tagged {{CODE_FENCE_LANG}}.\n- Include no explanation outside the code block."
+  },
+  {
+    "id": "l4_custom_scope",
+    "level": 4,
+    "realm": "scopes",
+    "title": "Custom combined execution scope for GEMM",
+    "prompt_template": "You are writing code for {{RUNTIME_NAME}}.\n\nUse the provided local documentation excerpts as the primary context. Treat these links as metadata/citation only:\n- Repository: {{RUNTIME_REPO_URL}}\n- Documentation: {{RUNTIME_DOCS_URL}}\n\nTask:\nWrite a complete {{LANGUAGE_NAME}} program that builds a custom execution scope (union or combined placement) from multiple base units, runs a matrix multiply under that scope, and validates the gathered result.\n\nRequirements:\n1) Combine multiple placement targets into one schedulable scope.\n2) Run GEMM under that scope and collect a host-visible matrix.\n3) Validate shape and finite values.\n4) Print exactly PASS on the last line if checks pass; otherwise print FAIL.\n5) Exit successfully on PASS.\n\nOutput rules:\n- Return only a single fenced code block tagged {{CODE_FENCE_LANG}}.\n- Include no explanation outside the code block."
+  },
+  {
+    "id": "l4_outofcore_gemm",
+    "level": 4,
+    "realm": "tiling_streaming",
+    "title": "Owner-computes tiled GEMM with explicit accumulation",
+    "prompt_template": "You are writing code for {{RUNTIME_NAME}}.\n\nUse the provided local documentation excerpts as the primary context. Treat these links as metadata/citation only:\n- Repository: {{RUNTIME_REPO_URL}}\n- Documentation: {{RUNTIME_DOCS_URL}}\n\nTask:\nWrite a complete {{LANGUAGE_NAME}} program that implements matrix multiply via an explicit triple loop over output tiles and reduction index, accumulating contributions into each output tile (owner-computes style), using dependency-aware task launches.\n\nRequirements:\n1) Outer structure: for each output tile, sum over all contributing inner tiles.\n2) Use asynchronous/task APIs with explicit dependencies where required.\n3) Validate final matrix shape and finite values.\n4) Print exactly PASS on the last line if checks pass; otherwise print FAIL.\n5) Exit successfully on PASS.\n\nOutput rules:\n- Return only a single fenced code block tagged {{CODE_FENCE_LANG}}.\n- Include no explanation outside the code block."
   }
 ]
