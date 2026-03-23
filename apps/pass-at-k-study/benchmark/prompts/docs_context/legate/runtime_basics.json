@@ -1,0 +1,5 @@
+{
+  "title": "Legate runtime basics",
+  "source_url": "https://docs.nvidia.com/legate/latest/",
+  "excerpt": "Legate executes array programs via a task-based runtime over logical regions. cuPyNumeric operations map to distributed tasks; expressing work with array primitives enables parallel scheduling and backend portability."
+}

@@ -1,0 +1,5 @@
+{
+  "title": "Legate dependency-safe iterative updates",
+  "source_url": "https://docs.nvidia.com/legate/latest/",
+  "excerpt": "Iterative stencil-style computations should build next-state arrays from immutable prior-state arrays each step. This preserves dependency correctness and allows the runtime to schedule dataflow safely."
+}

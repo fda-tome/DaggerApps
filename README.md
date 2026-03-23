@@ -40,6 +40,14 @@ julia --project=apps/pass-at-k-study -e 'using Pkg; Pkg.instantiate()'
 bash apps/pass-at-k-study/scripts/run_smoke_test.sh
 ```
 
+Smoke test **all supported runtimes** (dagger, iris, legate) in one shot:
+
+```bash
+bash apps/pass-at-k-study/scripts/smoke_all_runtimes.sh
+```
+
+(from `apps/pass-at-k-study`, or pass the full path). Set `LEGATE_PYTHON` if Legate is not at `../../../.venv/bin/python`.
+
 Quick start (heat propagation animation):
 
 ```bash

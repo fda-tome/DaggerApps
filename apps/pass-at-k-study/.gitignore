@@ -1,5 +1,7 @@
 outputs/generated/*.jsonl
 outputs/evaluated/*.jsonl
-figures/*.pdf
-tables/*.tex
+figures/*.png
+tables/*.md
 *.log
+.conda_pkgs/
+.conda/

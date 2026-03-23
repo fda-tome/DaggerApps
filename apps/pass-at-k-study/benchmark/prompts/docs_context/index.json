@@ -1,0 +1,28 @@
+{
+    "frameworks": {
+        "iris": {
+            "common": [
+                "iris/docs_primary.json",
+                "iris/repo_primary.json"
+            ],
+            "tasks": {
+            }
+        },
+        "dagger": {
+            "common": [
+                "dagger/docs_primary.json",
+                "dagger/repo_primary.json"
+            ],
+            "tasks": {
+            }
+        },
+        "legate": {
+            "common": [
+                "legate/docs_primary.json",
+                "legate/repo_primary.json"
+            ],
+            "tasks": {
+            }
+        }
+    }
+}

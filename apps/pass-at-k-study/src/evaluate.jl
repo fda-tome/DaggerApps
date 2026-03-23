@@ -16,7 +16,7 @@ const DEFAULT_TIMEOUT = 120.0
 
 include(joinpath(RUNNERS_DIR, "runners.jl"))
 
-const FRAMEWORK_LANGUAGE = Dict("dagger" => "julia", "iris" => "cpp", "legate" => "python", "parsec" => "c")
+const FRAMEWORK_LANGUAGE = Dict("dagger" => "julia", "iris" => "cpp", "legate" => "python")
 
 """Extract first fenced code block for given language (julia, cpp, c, python, etc.)."""
 function extract_first_code_block(text::AbstractString, lang::String)::String
@@ -28,6 +28,15 @@ end
 
 function extract_first_julia_block(text::AbstractString)::String
     extract_first_code_block(text, "julia")
+end
+
+"""Last non-empty line of stdout. `println(json)` leaves a trailing `\\n`, so `split(s,'\\n')[end]` is often empty."""
+function last_nonempty_stdout_line(stdout_str::String)::String
+    for part in Iterators.reverse(split(stdout_str, '\n'))
+        t = strip(part)
+        isempty(t) || return t
+    end
+    return ""
 end
 
 function task_name_to_module(task_name::String)::Symbol
@@ -151,9 +160,28 @@ function evaluate_sample(task_name::String, task_file::String, code::String; fra
             if !exit_ok
                 return (passed=false, results=[], elapsed=elapsed, error="timeout or non-zero exit", stderr=stderr_str)
             end
-            # Parse JSON from last line
-            line = strip(split(stdout_str, '\n')[end])
-            data = JSON3.read(line)
+            # Parse JSON from last non-empty line (println() adds trailing newline → split()[end] was "")
+            line = last_nonempty_stdout_line(stdout_str)
+            if isempty(line)
+                return (
+                    passed=false,
+                    results=[],
+                    elapsed=elapsed,
+                    error="empty runner stdout (expected JSON line)",
+                    stderr=stderr_str,
+                )
+            end
+            data = try
+                JSON3.read(line)
+            catch e
+                return (
+                    passed=false,
+                    results=[],
+                    elapsed=elapsed,
+                    error="invalid runner JSON: $(sprint(showerror, e)); line=$(repr(first(line, 200)))",
+                    stderr=stderr_str,
+                )
+            end
             results = [r.pass for r in data.results]
             all_pass = all(results)
             return (passed=all_pass, results=results, elapsed=elapsed, error=nothing, stderr=stderr_str)
@@ -198,8 +226,6 @@ function main()
                 run_iris(task, task_file, code, response; timeout_sec=DEFAULT_TIMEOUT)
             elseif framework == "legate"
                 run_legate(task, task_file, code, response; timeout_sec=DEFAULT_TIMEOUT)
-            elseif framework == "parsec"
-                run_parsec(task, task_file, code, response; timeout_sec=DEFAULT_TIMEOUT)
             else
                 (passed=false, results=Bool[], elapsed=0.0, error="unknown framework: $framework", stderr="")
             end

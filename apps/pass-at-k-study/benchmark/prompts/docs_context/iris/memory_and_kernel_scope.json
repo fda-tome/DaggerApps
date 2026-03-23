@@ -1,0 +1,5 @@
+{
+  "title": "IRIS memory and kernel scope for GEMM",
+  "source_url": "https://iris-programming.readthedocs.io/en/latest/",
+  "excerpt": "For matrix workloads, allocate buffers as runtime-managed memory objects, configure kernel dimensions explicitly, and keep data movement deterministic between initialization, kernel execution, and host verification."
+}

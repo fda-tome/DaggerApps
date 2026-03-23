@@ -1,0 +1,58 @@
+[
+  {
+    "id": "l1_basic_spawn",
+    "level": 1,
+    "realm": "task_spawning",
+    "title": "Independent task spawning and result collection",
+    "prompt_template": "You are writing code for {{RUNTIME_NAME}}.\n\nUse the provided local documentation excerpts as the primary context. Treat these links as metadata/citation only:\n- Repository: {{RUNTIME_REPO_URL}}\n- Documentation: {{RUNTIME_DOCS_URL}}\n\nTask:\nWrite a complete {{LANGUAGE_NAME}} program that launches 4 independent units of work, each computing the sum of one array, then collects the 4 sums.\n\nRequirements:\n1) Generate or define 4 Float32-compatible arrays.\n2) Execute the 4 sums through the runtime's task model (not purely sequential loops).\n3) Collect all 4 results and verify correctness against a serial reference.\n4) Print exactly PASS on the last line if checks pass; otherwise print FAIL.\n5) Exit successfully on PASS.\n\nOutput rules:\n- Return only a single fenced code block tagged {{CODE_FENCE_LANG}}.\n- Include no explanation outside the code block."
+  },
+  {
+    "id": "l1_darray_create",
+    "level": 1,
+    "realm": "distributed_arrays",
+    "title": "Distributed array creation and gather",
+    "prompt_template": "You are writing code for {{RUNTIME_NAME}}.\n\nUse the provided local documentation excerpts as the primary context. Treat these links as metadata/citation only:\n- Repository: {{RUNTIME_REPO_URL}}\n- Documentation: {{RUNTIME_DOCS_URL}}\n\nTask:\nWrite a complete {{LANGUAGE_NAME}} program that creates a logically distributed 2D Float32 matrix, fills it with deterministic data, gathers/collects it into a host matrix, and validates shape and values.\n\nRequirements:\n1) Matrix size must be at least 512x512.\n2) Use the runtime's data/distribution abstractions where available.\n3) Validate that gathered shape and sampled values match expectations.\n4) Print exactly PASS on the last line if checks pass; otherwise print FAIL.\n5) Exit successfully on PASS.\n\nOutput rules:\n- Return only a single fenced code block tagged {{CODE_FENCE_LANG}}.\n- Include no explanation outside the code block."
+  },
+  {
+    "id": "l2_dependent_pipeline",
+    "level": 2,
+    "realm": "pipeline_dependencies",
+    "title": "Three-stage dependent pipeline",
+    "prompt_template": "You are writing code for {{RUNTIME_NAME}}.\n\nUse the provided local documentation excerpts as the primary context. Treat these links as metadata/citation only:\n- Repository: {{RUNTIME_REPO_URL}}\n- Documentation: {{RUNTIME_DOCS_URL}}\n\nTask:\nWrite a complete {{LANGUAGE_NAME}} program that executes a 3-stage dependent pipeline:\nStage A: create an N x N Float32 matrix,\nStage B: normalize it by its maximum,\nStage C: reduce to a scalar sum.\n\nRequirements:\n1) Encode dependencies so Stage B waits for A, and Stage C waits for B.\n2) Use asynchronous/task-based runtime primitives where available.\n3) Validate the final scalar is finite and within an expected range.\n4) Print exactly PASS on the last line if checks pass; otherwise print FAIL.\n5) Exit successfully on PASS.\n\nOutput rules:\n- Return only a single fenced code block tagged {{CODE_FENCE_LANG}}.\n- Include no explanation outside the code block."
+  },
+  {
+    "id": "l2_gemm_scoped",
+    "level": 2,
+    "realm": "matrix_multiplication",
+    "title": "Runtime-scoped GEMM",
+    "prompt_template": "You are writing code for {{RUNTIME_NAME}}.\n\nUse the provided local documentation excerpts as the primary context. Treat these links as metadata/citation only:\n- Repository: {{RUNTIME_REPO_URL}}\n- Documentation: {{RUNTIME_DOCS_URL}}\n\nTask:\nWrite a complete {{LANGUAGE_NAME}} program that computes C = A * B for Float32 matrices using the runtime's execution/scoping controls where applicable.\n\nRequirements:\n1) Use matrix size at least 512x512.\n2) Prefer runtime APIs to schedule/partition work instead of plain single-thread loops.\n3) Validate output dimensions and finite numeric values.\n4) Print exactly PASS on the last line if checks pass; otherwise print FAIL.\n5) Exit successfully on PASS.\n\nOutput rules:\n- Return only a single fenced code block tagged {{CODE_FENCE_LANG}}.\n- Include no explanation outside the code block."
+  },
+  {
+    "id": "l3_dependency_chain_reduce",
+    "level": 3,
+    "realm": "dependency_graphs",
+    "title": "Multi-stage dependency chain with reduction",
+    "prompt_template": "You are writing code for {{RUNTIME_NAME}}.\n\nUse the provided local documentation excerpts as the primary context. Treat these links as metadata/citation only:\n- Repository: {{RUNTIME_REPO_URL}}\n- Documentation: {{RUNTIME_DOCS_URL}}\n\nTask:\nWrite a complete {{LANGUAGE_NAME}} program that builds a multi-stage dependency chain:\n1) produce partitioned blocks,\n2) transform each block,\n3) reduce all transformed blocks to one scalar.\n\nRequirements:\n1) Use runtime task/dependency primitives for stage ordering.\n2) Compute a deterministic final scalar and validate it against a serial/reference computation.\n3) Print exactly PASS on the last line if checks pass; otherwise print FAIL.\n4) Exit successfully on PASS.\n\nOutput rules:\n- Return only a single fenced code block tagged {{CODE_FENCE_LANG}}.\n- Include no explanation outside the code block."
+  },
+  {
+    "id": "l3_partitioned_exchange_validate",
+    "level": 3,
+    "realm": "partition_exchange",
+    "title": "Partition exchange and global reconstruction validation",
+    "prompt_template": "You are writing code for {{RUNTIME_NAME}}.\n\nUse the provided local documentation excerpts as the primary context. Treat these links as metadata/citation only:\n- Repository: {{RUNTIME_REPO_URL}}\n- Documentation: {{RUNTIME_DOCS_URL}}\n\nTask:\nWrite a complete {{LANGUAGE_NAME}} program that partitions data into tiles/chunks, performs a cross-partition exchange/recombine step, then reconstructs a global result.\n\nRequirements:\n1) Use partitioned data and at least one exchange/recombine stage.\n2) Validate global reconstruction via checksum or exact sampled positions against a reference.\n3) Print exactly PASS on the last line if checks pass; otherwise print FAIL.\n4) Exit successfully on PASS.\n\nOutput rules:\n- Return only a single fenced code block tagged {{CODE_FENCE_LANG}}.\n- Include no explanation outside the code block."
+  },
+  {
+    "id": "l4_distributed_solver_step",
+    "level": 4,
+    "realm": "iterative_methods",
+    "title": "Distributed iterative solver step with dependency correctness",
+    "prompt_template": "You are writing code for {{RUNTIME_NAME}}.\n\nUse the provided local documentation excerpts as the primary context. Treat these links as metadata/citation only:\n- Repository: {{RUNTIME_REPO_URL}}\n- Documentation: {{RUNTIME_DOCS_URL}}\n\nTask:\nWrite a complete {{LANGUAGE_NAME}} program that performs one or more distributed iterative update steps (for example Jacobi-like updates) where next-state depends only on prior-state data.\n\nRequirements:\n1) Keep old-state and new-state dependency ordering correct.\n2) Validate a correctness condition (finite values, bounded residual, or invariant trend).\n3) Print exactly PASS on the last line if checks pass; otherwise print FAIL.\n4) Exit successfully on PASS.\n\nOutput rules:\n- Return only a single fenced code block tagged {{CODE_FENCE_LANG}}.\n- Include no explanation outside the code block."
+  },
+  {
+    "id": "l4_fault_tolerant_aggregation",
+    "level": 4,
+    "realm": "robust_aggregation",
+    "title": "Fault-tolerant distributed aggregation",
+    "prompt_template": "You are writing code for {{RUNTIME_NAME}}.\n\nUse the provided local documentation excerpts as the primary context. Treat these links as metadata/citation only:\n- Repository: {{RUNTIME_REPO_URL}}\n- Documentation: {{RUNTIME_DOCS_URL}}\n\nTask:\nWrite a complete {{LANGUAGE_NAME}} program that launches multiple distributed subtasks, tolerates per-subtask invalid outputs/errors, and aggregates only valid results.\n\nRequirements:\n1) Include an explicit invalid/failure path for at least one subtask.\n2) Aggregate valid results deterministically and validate against a reference expected value.\n3) Print exactly PASS on the last line if checks pass; otherwise print FAIL.\n4) Exit successfully on PASS.\n\nOutput rules:\n- Return only a single fenced code block tagged {{CODE_FENCE_LANG}}.\n- Include no explanation outside the code block."
+  }
+]

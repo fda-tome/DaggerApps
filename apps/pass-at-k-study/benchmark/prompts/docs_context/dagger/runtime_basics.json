@@ -1,0 +1,5 @@
+{
+  "title": "Dagger runtime basics",
+  "source_url": "https://juliaparallel.org/Dagger.jl/dev/",
+  "excerpt": "Dagger expresses parallelism as a directed acyclic graph of tasks. Task dependencies are formed by passing task outputs into downstream tasks. Execution resources are selected through scopes and processors, and synchronization occurs via fetch/wait on task handles."
+}
