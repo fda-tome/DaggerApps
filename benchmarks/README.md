@@ -39,6 +39,9 @@ julia --project=apps/game-of-life -t16 -e 'include("benchmarks/scripts/game-of-l
 
 # Heat propagation (single-node, threads-based)
 julia --project=apps/heat-propagation -t16 -e 'include("benchmarks/scripts/heat-propagation.jl"); run_benchmark()'
+
+# GPU Cholesky (four GPUs; load CUDA/AMDGPU/oneAPI/Metal before Dagger)
+julia --project=apps/gpu-cholesky -e 'using CUDA; using Dagger; include("benchmarks/scripts/gpu-cholesky.jl"); run_benchmark()'
 ```
 
 If you want to run from an external project, develop the benchmarks package once:
@@ -71,6 +74,17 @@ Notes for heat-propagation:
 - Weak scaling scales rows/cols with threads via `HEAT_WEAK_SCALE` (or explicit `HEAT_WEAK_ROWS`/`HEAT_WEAK_COLS`).
 - GPU variants can be enabled with any loaded backend (`CUDA`, `AMDGPU`, `oneAPI`, `Metal`) and selected via `HEAT_DEVICE`.
 - GPU-only matrix-size sweeps are available with `run_gpu_size_sweep(...)` in `benchmarks/scripts/heat-propagation.jl`.
+
+Notes for gpu-cholesky:
+
+- Requires **four** visible GPUs of one vendor; uses Dagger `assignment=` with a 2×2 block-cyclic **processor** grid.
+- Default matrix sizes are `N = 2^k` from `k = 10` through `18` (override with `CHOLESKY_K_MIN` / `CHOLESKY_K_MAX` or `CHOLESKY_NS`).
+- The script also records a **vendor baseline** (same loaded backend as Dagger: CUDA / AMDGPU / oneAPI / Metal): single-GPU `LinearAlgebra.cholesky!` on a dense GPU matrix matching the same SPD problem (`CHOLESKY_VENDOR`, `CHOLESKY_VENDOR_DEVICE`). CSV columns `dagger_*` vs `vendor_*` compare the two; vendor timing includes a per-trial `copyto!` refresh before `cholesky!`.
+- Optional **`CHOLESKY_PERF_LOG=1`**: Dagger TimespanLogging summaries per `(N, block_size)` as NDJSON (`perf_dagger.jsonl`; see `CHOLESKY_PERF_SCOPE`, `CHOLESKY_PERF_LOG_PATH`).
+- **`CHOLESKY_ALGO=rl_la`** (default): algorithm variant (`rl`, `rl_la`, `ll`); comma-separated list sweeps all in one run. `rl_la` adds processor pinning and lookahead spawn ordering; `ll` is a left-looking GEMM-based variant with pinning.
+- **`CHOLESKY_BLOCKS`** / **`CHOLESKY_INPLACE`**: tile-size sweep and in-place `cholesky!` path (see script header / app README).
+- The app environment pins **Dagger.jl** to GitHub `master` via `Manifest.toml`.
+- Prefer `CHOLESKY_ELTYPE=Float32` for large `N` (memory).
 
 ## Folder layout
 

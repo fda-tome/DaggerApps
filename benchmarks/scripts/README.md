@@ -16,6 +16,12 @@ julia --project=benchmarks/scripts -t16 -e 'include("benchmarks/scripts/game-of-
 julia --project=benchmarks/scripts -t16 -e 'include("benchmarks/scripts/heat-propagation.jl"); run_benchmark()'
 ```
 
+GPU Cholesky should use the **app** project (Dagger from `master`), not `benchmarks/scripts` alone:
+
+```bash
+julia --project=apps/gpu-cholesky -e 'using CUDA; using Dagger; include("benchmarks/scripts/gpu-cholesky.jl"); run_benchmark()'
+```
+
 If you want GPU runs, load any supported backend before running:
 
 ```julia
@@ -48,6 +54,8 @@ julia --project=. -e 'using CUDA, DaggerAppsBenchmarks; run_game_of_life_gpu_siz
 julia --project=. -e 'using CUDA, DaggerAppsBenchmarks; run_heat_propagation_gpu_size_sweep(sizes=[1024,2048,4096,8192,12288,16384], variant=:gpu_dagger_stencil_pad)' # CUDA/AMDGPU/oneAPI/Metal
 ```
 
+`run_gpu_cholesky()` from `DaggerAppsBenchmarks` loads the same script as the gpu-cholesky app; use an active project that resolves **Dagger** the way you intend (for the published `Manifest.toml`, use `--project=apps/gpu-cholesky` and `Pkg.develop` the `benchmarks/scripts` helper into that environment if you want the helper entry point).
+
 If you want GPU runs, load a backend in the same session:
 
 ```bash
@@ -66,4 +74,4 @@ julia --project=. -e 'using CUDA, DaggerAppsBenchmarks; run_seam_carving()' # CU
 - GPU backend selection for game-of-life uses `LIFE_DEVICE=auto|cpu|cuda|amdgpu|oneapi|metal`.
 - GPU backend selection for heat-propagation uses `HEAT_DEVICE=auto|cpu|cuda|amdgpu|oneapi|metal`.
 - GPU-only size sweeps write `gpu_size_sweep_runs.csv`, `gpu_size_sweep_summary.csv`, and `gpu_size_sweep.png`.
-- `DaggerAppsBenchmarks` exposes `run_seam_carving()`, `run_game_of_life()`, `run_heat_propagation()`, `run_game_of_life_gpu_size_sweep()`, and `run_heat_propagation_gpu_size_sweep()`.
+- `DaggerAppsBenchmarks` exposes `run_seam_carving()`, `run_game_of_life()`, `run_heat_propagation()`, `run_gpu_cholesky()`, `run_game_of_life_gpu_size_sweep()`, and `run_heat_propagation_gpu_size_sweep()`.
