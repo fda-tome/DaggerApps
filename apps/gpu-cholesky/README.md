@@ -10,7 +10,7 @@ Blocked `LinearAlgebra.cholesky` on a GPU-backed `Dagger.DArray` with **four dev
 
 ## Dagger.jl from `master`
 
-The environment pins **Dagger** to [JuliaParallel/Dagger.jl](https://github.com/JuliaParallel/Dagger.jl) `master` via `Manifest.toml` (`repo-url` / `repo-rev` / `git-tree-sha1`). To refresh to the latest commit:
+The environment pins **Dagger** to [JuliaParallel/Dagger.jl](https://github.com/JuliaParallel/Dagger.jl) `master` via `Project.toml` `[sources]` and `Manifest.toml`. To refresh to the latest commit:
 
 ```julia
 using Pkg
@@ -62,7 +62,7 @@ Example sweep: `CHOLESKY_ALGO=rl,rl_la,ll`. The CSV and NDJSON perf log include 
 
 ## ALCF Polaris compute nodes (interactive / PBS jobs)
 
-- **`git clone git@github.com:...` often fails** on compute nodes (no outbound SSH). Clone or `Pkg.add` from a **login node**, or use **HTTPS** with the ALCF proxy, or use a copy of **Dagger.jl** already on **Eagle** (e.g. `/eagle/dagger/paper/Dagger.jl`) and `Pkg.develop(path="...")`.
+- **`git clone git@github.com:...` often fails** on compute nodes (no outbound SSH). Clone or `Pkg.add` from a **login node**, or use **HTTPS** with the ALCF proxy. To use a local checkout instead of the GitHub pin: `Pkg.develop(path="...")` for **Dagger.jl**.
 - **`rename ... cross-device link not permitted (EXDEV)`** during `Pkg` registry updates: PBS may use `/var/tmp` for downloads while `~/.julia` is on another filesystem. Point temp space at the **same filesystem** as your depot, for example:
   ```bash
   export TMPDIR="${HOME}/.julia/tmp"
