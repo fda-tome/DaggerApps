@@ -75,6 +75,26 @@ Example sweep: `CHOLESKY_ALGO=rl,rl_la,ll`. The CSV and NDJSON perf log include 
   ```
   (Use a path under your Eagle allocation; avoid cross-filesystem renames from job `TMPDIR`.)
 
+## AMD MI300 / ROCm batch jobs (SLURM)
+
+- Load your site’s **ROCm** module (and Julia) on the **login or batch node** as required.
+- This benchmark needs **four visible GPU devices** on one node (`HIP_VISIBLE_DEVICES` / `ROCR_VISIBLE_DEVICES` if you must pin devices). See `scripts/amd_rocm_env.sh` for optional exports.
+- Example batch driver (same sweep as `scripts/polaris_cholesky_bench.pbs`, but `using AMDGPU` instead of `using CUDA`):
+
+  ```bash
+  export PROJ=/path/to/parent/of/DaggerApps
+  sbatch scripts/mi300a_cholesky_bench.slurm
+  ```
+
+  Set `JULIA`, `JULIA_PROJECT`, `LOGDIR`, and `#SBATCH` account/partition in that script for your facility.
+
+- One-line interactive test from `DaggerApps` root:
+
+  ```bash
+  CHOLESKY_DEVICE=amdgpu CHOLESKY_NS=1024 CHOLESKY_BLOCK=512 \
+    julia --project=apps/gpu-cholesky -e 'using AMDGPU; using Dagger; include("benchmarks/scripts/gpu-cholesky.jl"); run_benchmark()'
+  ```
+
 ## Library API
 
 `using DaggerGpuCholesky` (after `using` your GPU stack and `Dagger`) provides helpers such as `four_gpu_processors`, `cholesky_block_cyclic_assignment`, `spd_ones_darray`, `bench_cholesky_once!`, and `spd_ones_dense_vendor` / `bench_vendor_cholesky_once!` for the dense single-GPU vendor baseline (backend follows whichever GPU package is loaded in `Main`).

@@ -2,6 +2,8 @@
 #
 # Load one GPU backend **before** Dagger (see Dagger.jl docs), e.g.:
 #   julia --project=apps/gpu-cholesky -e 'using CUDA; using Dagger; include("benchmarks/scripts/gpu-cholesky.jl"); run_benchmark()'
+# AMD (ROCm / MI200 / MI300, etc.):
+#   julia --project=apps/gpu-cholesky -e 'using AMDGPU; using Dagger; include("benchmarks/scripts/gpu-cholesky.jl"); run_benchmark()'
 #
 # Env:
 #   CHOLESKY_DEVICE      auto|cuda|amdgpu|oneapi|metal (default auto)
@@ -330,7 +332,7 @@ function run_benchmark()
                     vt = Vector{Float64}(undef, n_trials)
                     for vi in 1:n_trials
                         copyto!(A_wrk, A_tpl)
-                        CUDA.synchronize()
+                        DG.vendor_timing_sync!()
                         t0 = time_ns()
                         DG.bench_vendor_cholesky_once!(A_wrk)
                         vt[vi] = (time_ns() - t0) / 1e9
@@ -339,13 +341,13 @@ function run_benchmark()
                     v_med = median(vt)
                     v_mn = mean(vt)
                     v_sd = std(vt; corrected=false)
-                    CUDA.unsafe_free!(A_wrk)
-                    CUDA.unsafe_free!(A_tpl)
+                    DG.unsafe_free_dense_gpu!(A_wrk)
+                    DG.unsafe_free_dense_gpu!(A_tpl)
                 catch ex
                     @warn "Vendor baseline failed for N=$N; Dagger runs will continue" exception=(ex, catch_backtrace())
                 end
                 GC.gc(true)
-                CUDA.reclaim()
+                DG.vendor_gpu_reclaim!()
                 @info "  vendor: GPU memory released"; flush(stderr)
             end
 
