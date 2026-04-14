@@ -4,11 +4,35 @@ using Printf
 using Statistics
 using BenchmarkTools
 
+"""
+Add `nw` Julia workers.  When running inside a PBS job (`\$PBS_NODEFILE` exists),
+workers are distributed across allocated compute nodes via SSH (one per node).
+Otherwise, workers are added locally (interactive / single-node use).
+"""
+function _add_workers(nw::Int)
+    nodefile = get(ENV, "PBS_NODEFILE", "")
+    if !isempty(nodefile) && isfile(nodefile)
+        hosts = unique(readlines(nodefile))
+        n = min(nw, length(hosts))
+        julia_exec = joinpath(Sys.BINDIR, "julia")
+        println("Distributing $n worker(s) across PBS nodes: ", hosts[1:n])
+        flush(stdout)
+        addprocs(
+            hosts[1:n];
+            exename=julia_exec,
+            exeflags="--project=$(Base.active_project())",
+            topology=:master_worker,
+        )
+    else
+        addprocs(nw)
+    end
+end
+
 # Add workers before loading Dagger (required by Dagger.jl). Set BARNES_NPROCS for a full multi-worker run.
 if haskey(ENV, "BARNES_NPROCS") && nprocs() == 1
     nw = parse(Int, ENV["BARNES_NPROCS"])
     nw > 0 || error("BARNES_NPROCS must be positive, got: $(ENV["BARNES_NPROCS"])")
-    addprocs(nw)
+    _add_workers(nw)
 end
 using Dagger
 
@@ -95,6 +119,7 @@ function run_benchmark(;
     println("Theta: $theta")
     println("BenchmarkTools samples/evals per run: $bt_samples/$bt_evals")
     println()
+    flush(stdout)
 
     if warmup > 0
         println(">>> Warmup — strong (N=$strong_N), $warmup untimed run(s) (JIT / precompile)")
@@ -108,6 +133,7 @@ function run_benchmark(;
     println(">>> Strong scaling (fixed N=$strong_N)")
     strong_times = _run_n(() -> bmark(strong_N, theta), runs; bt_samples=bt_samples, bt_evals=bt_evals)
     println(Printf.@sprintf("  mean=%.4fs  std=%.4fs", mean(strong_times), std(strong_times)))
+    flush(stdout)
 
     if warmup > 0
         println()
@@ -122,12 +148,14 @@ function run_benchmark(;
     println(">>> Weak scaling (N = bodies_per_proc * procs = $weak_bodies_per_proc * $procs = $weak_N)")
     weak_times = _run_n(() -> bmark(weak_N, theta), runs; bt_samples=bt_samples, bt_evals=bt_evals)
     println(Printf.@sprintf("  mean=%.4fs  std=%.4fs", mean(weak_times), std(weak_times)))
+    flush(stdout)
 
     _write_runs_csv(joinpath(out_dir, "strong_scaling.csv"), "strong", procs, strong_N, theta, strong_times)
     _write_runs_csv(joinpath(out_dir, "weak_scaling.csv"), "weak", procs, weak_N, theta, weak_times)
 
     println()
     println("Results written to: $out_dir")
+    flush(stdout)
     return out_dir
 end
 
@@ -155,6 +183,7 @@ function run_scaling_experiment(;
     println("Worker counts: ", worker_counts)
     println("Output base: ", out_base)
     println()
+    flush(stdout)
 
     for w in worker_counts
         w_dir = joinpath(out_base, string(w))
@@ -164,13 +193,14 @@ function run_scaling_experiment(;
         env["BARNES_RESULTS_DIR"] = w_dir
         delete!(env, "BARNES_SCALING_EXPERIMENT")  # so child runs run_benchmark(), not this again
         println(">>> Running with $w worker(s) ...")
-        # setenv only accepts Cmd, not pipeline(Cmd, ...); child inherits stdout/stderr by default
+        flush(stdout)
         julia_cmd = Base.julia_cmd()
         bench_script = joinpath(repo_root, "benchmarks", "scripts", "barnes-hut.jl")
         proj = joinpath(repo_root, "apps", APP)
         cmd = setenv(`$julia_cmd --project=$proj $bench_script`, env)
         run(cmd)
         println()
+        flush(stdout)
     end
 
     # Merge CSVs into scaling_strong.csv and scaling_weak.csv
@@ -206,13 +236,31 @@ function run_scaling_experiment(;
     end
 
     println("Merged results: $(out_base)/scaling_strong.csv, scaling_weak.csv")
+    flush(stdout)
     return out_base
+end
+
+function _shutdown_dagger_and_workers()
+    try
+        state = Dagger.Sch.EAGER_STATE[]
+        if state !== nothing && !state.halt.set
+            Dagger.cancel!(; halt_sch=true)
+        end
+    catch end
+    try
+        wkrs = workers()
+        length(wkrs) > 0 && rmprocs(wkrs; waitfor=30.0)
+    catch end
 end
 
 if abspath(PROGRAM_FILE) == @__FILE__
     if get(ENV, "BARNES_SCALING_EXPERIMENT", "") == "1"
         run_scaling_experiment()
     else
-        run_benchmark()
+        try
+            run_benchmark()
+        finally
+            _shutdown_dagger_and_workers()
+        end
     end
 end
