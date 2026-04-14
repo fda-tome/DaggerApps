@@ -2,6 +2,13 @@
 
 A collection of Dagger.jl application folders (apps), plus optional benchmark scaffolding. Each app is intended to be a self‑contained Julia project; benchmarks are opt‑in and live under `benchmarks/`.
 
+## SC26 AD/AE integration branch
+
+Branch **`SC26_AD_AE`** merges the paper-pinned commits for Cholesky (NVIDIA/Intel
+and AMD), Barnes–Hut, seam carving, stencil (`main` baseline), and the LLM
+pass@k study. See **[BRANCHES_SC26.md](BRANCHES_SC26.md)** for full SHAs, merge
+order, and entrypoint paths.
+
 ## Repo layout
 
 ```
