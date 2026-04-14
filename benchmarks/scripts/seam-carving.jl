@@ -58,6 +58,8 @@ if !isdefined(@__MODULE__, :DaggerSeamCarving)
 end
 const DaggerSeamCarving = getfield(@__MODULE__, :DaggerSeamCarving)
 
+DaggerSeamCarving.seam_configure_thread_pinning!()
+
 function _device_convert(device::Symbol, img)
     device = device === :auto ? _device_from_loaded() : device
     if device === :cpu
@@ -91,6 +93,12 @@ function _run_variant(variant::Symbol, img, k::Int, tile_h::Int, tile_w::Int)
         return DaggerSeamCarving.seam_carve_cpu_dagger_tileoverlap(img; k=k, tile_h=tile_h, tile_w=tile_w)
     elseif variant === :cpu_dagger_triangles
         return DaggerSeamCarving.seam_carve_cpu_dagger_triangles(img; k=k, tile_h=tile_h, tile_w=tile_w)
+    elseif variant === :cpu_dagger_westrick
+        ens = let raw = lowercase(strip(get(ENV, "SEAM_WESTRICK_PHASE_TASKS_GE_THREADS", "0")))
+            raw in ("1", "true", "yes", "on")
+        end
+        return DaggerSeamCarving.seam_carve_cpu_dagger_westrick(img; k=k, tile_h=tile_h, tile_w=tile_w,
+            ensure_phase_tasks_ge_threads = ens)
     elseif variant === :gpu_dagger
         return DaggerSeamCarving.seam_carve_gpu_dagger(img; k=k)
     elseif variant === :gpu_dagger_device
@@ -116,6 +124,7 @@ const DEFAULT_VARIANTS = [
     :cpu_dagger_wavefront,
     :cpu_dagger_tileoverlap,
     :cpu_dagger_triangles,
+    :cpu_dagger_westrick,
     :gpu_dagger,
     :gpu_dagger_device,
 ]
@@ -267,6 +276,12 @@ Configuration (environment variables):
 - `SEAM_WEAK_SCALE` (default: sqrt; options: sqrt|linear|<float>)
 - `SEAM_WEAK_ROWS` / `SEAM_WEAK_COLS` (override weak dimensions)
 - `SEAM_SCENARIOS` (default: both; strong|weak|both)
+
+Wavefront/triangles tuning (see `apps/seam-carving/README.md`): `SEAM_WAVE_SIZE`, `SEAM_CPU_NESTED_THREADS`,
+`SEAM_MIN_DP_TILE_W`, `SEAM_DP_INNER_THREADS`, `SEAM_DP_INNER_MIN_SPAN`. Westrick DP: `SEAM_WESTRICK_BLOCK_WIDTH`, `SEAM_WESTRICK_BLOCK_WIDTH_AUTO` / `SEAM_WESTRICK_BLOCK_WIDTH_AUTO_MAX`.
+`SEAM_WESTRICK_PHASE_TASKS_GE_THREADS=1`: shrink tiling / block width so each Westrick Dagger phase has at least `Threads.nthreads()` tasks (`DaggerSeamCarving.westrick_ensure_tasks_per_thread`).
+Strong-scaling sweeps: `benchmarks/scripts/seam-westrick-scaling.jl` and `SEAM_THREAD_SWEEP`.
+NDJSON westrick perf: `SEAM_DEBUG_AGENT=1` or `SEAM_PERF_LOG=1` writes schedule + phase times + alloc/GC lines to `.cursor/debug-d35653.log` in the repo.
 
 Keyword arguments:
 - `scenarios`: override which scenarios to run (`:strong`, `:weak`, `:both` or a tuple/vector of them). When provided, this

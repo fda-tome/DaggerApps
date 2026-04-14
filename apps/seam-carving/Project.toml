@@ -8,3 +8,10 @@ CUDA = "052768ef-5323-5732-b1bb-66c8b64840ba"
 Dagger = "d58978e5-989f-55fb-8d15-ea34adc7bf54"
 KernelAbstractions = "63c18a36-062a-441e-b654-da1e3ab1ce7c"
 Revise = "295af30f-e4ad-537b-8983-00126c2a3abe"
+ThreadPinning = "811555cd-349b-4f26-b7bc-1f208b848042"
+
+[sources]
+Dagger = {path = "../../../Dagger.jl"}
+
+[compat]
+ThreadPinning = "1.0.2"
