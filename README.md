@@ -9,6 +9,7 @@ DaggerApps/
 ├── apps/                      # Dagger applications (one folder per app)
 │   ├── barnes-hut/            # Barnes–Hut N-body simulation (distributed, Morton Z-curve)
 │   ├── game-of-life/          # Conway's Game of Life (stencil-based)
+│   ├── gpu-cholesky/          # Multi-GPU DArray Cholesky benchmark (Dagger master)
 │   ├── heat-propagation/      # 2D heat diffusion + animation
 │   ├── pass-at-k-study/       # LLM pass@k comparative benchmark app
 │   └── seam-carving/          # Content-aware image resizing (seam carving)
@@ -66,6 +67,14 @@ Quick start (Barnes–Hut benchmark; optional `addprocs(N)` for distributed):
 julia --project=apps/barnes-hut -e 'include("benchmarks/scripts/barnes-hut.jl"); run_benchmark()'
 ```
 
+Quick start (GPU Cholesky benchmark; **four GPUs**; load a vendor package before `Dagger`):
+
+```bash
+julia --project=apps/gpu-cholesky -e 'using CUDA; using Dagger; include("benchmarks/scripts/gpu-cholesky.jl"); run_benchmark()'
+```
+
+Results go to `benchmarks/results/gpu-cholesky/<timestamp>/`. See `apps/gpu-cholesky/README.md` for env vars (`CHOLESKY_K_MIN`, `CHOLESKY_K_MAX`, etc.).
+
 ## External project usage
 
 From any other Julia project:
@@ -77,6 +86,8 @@ julia --project=. -e 'using DaggerAppsBenchmarks; run_game_of_life()'
 julia --project=. -e 'using DaggerAppsBenchmarks; run_heat_propagation()'
 julia --project=. -e 'using DaggerAppsBenchmarks; run_barnes_hut()'
 ```
+
+For **gpu-cholesky**, prefer `--project=apps/gpu-cholesky` so the environment pins **Dagger.jl** to GitHub `master` (see `apps/gpu-cholesky/Manifest.toml`). The `DaggerAppsBenchmarks` helper can call `run_gpu_cholesky()` but uses whatever Dagger version the active project resolves.
 
 This uses the `DaggerAppsBenchmarks` helper package (defined in `benchmarks/scripts/`).
 

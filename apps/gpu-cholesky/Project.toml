@@ -1,0 +1,19 @@
+name = "DaggerGpuCholesky"
+uuid = "f7a2c8e1-9b0d-4e5f-a3c6-8d1e2f3a4b5c"
+version = "0.0.1"
+
+[deps]
+BenchmarkTools = "6e4b80f9-dd63-53aa-95a3-0cdb28fa8baf"
+CUDA = "052768ef-5323-5732-b1bb-66c8b64840ba"
+Dagger = "d58978e5-989f-55fb-8d15-ea34adc7bf54"
+GPUArraysCore = "46192b85-c4d5-4398-a991-12ede77f4527"
+Dates = "ade2ca70-3891-5945-98fb-dc099432e06a"
+LinearAlgebra = "37e2e46d-f89d-539d-b4ee-838fcccc9c8e"
+Printf = "de0858da-6303-5e67-8744-51eddeeeb8d7"
+Statistics = "10745b16-79ce-11e8-11f9-7d13ad32a3b2"
+
+[sources]
+Dagger = {path = "/eagle/dagger/paper/Dagger.jl"}
+
+[compat]
+julia = "1.10"

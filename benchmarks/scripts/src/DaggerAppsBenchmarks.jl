@@ -2,6 +2,7 @@ module DaggerAppsBenchmarks
 
 export run_seam_carving, load_seam_carving, run_game_of_life, load_game_of_life, run_heat_propagation, load_heat_propagation
 export run_barnes_hut, load_barnes_hut
+export run_gpu_cholesky, load_gpu_cholesky
 export run_game_of_life_gpu_size_sweep, run_heat_propagation_gpu_size_sweep
 
 const _seam_loaded = Ref(false)
@@ -16,6 +17,9 @@ const _heat_mod = Ref{Union{Nothing, Module}}(nothing)
 const _barnes_loaded = Ref(false)
 const _barnes_run = Ref{Union{Nothing, Function}}(nothing)
 const _barnes_mod = Ref{Union{Nothing, Module}}(nothing)
+const _chol_loaded = Ref(false)
+const _chol_run = Ref{Union{Nothing, Function}}(nothing)
+const _chol_mod = Ref{Union{Nothing, Module}}(nothing)
 
 function _load_runner(path::AbstractString, modname::Symbol)
     mod = if isdefined(@__MODULE__, modname)
@@ -113,6 +117,24 @@ function run_barnes_hut(; kwargs...)
     load_barnes_hut()
     runner = _barnes_run[]
     runner === nothing && error("run_benchmark was not loaded for barnes-hut.")
+    return Base.invokelatest(runner; kwargs...)
+end
+
+function load_gpu_cholesky()
+    if !_chol_loaded[]
+        path = joinpath(@__DIR__, "..", "gpu-cholesky.jl")
+        mod, runner = _load_runner(path, :GpuCholeskyBench)
+        _chol_mod[] = mod
+        _chol_run[] = runner
+        _chol_loaded[] = true
+    end
+    return nothing
+end
+
+function run_gpu_cholesky(; kwargs...)
+    load_gpu_cholesky()
+    runner = _chol_run[]
+    runner === nothing && error("run_benchmark was not loaded for gpu-cholesky.")
     return Base.invokelatest(runner; kwargs...)
 end
 

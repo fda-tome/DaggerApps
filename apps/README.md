@@ -15,6 +15,7 @@ For app‑specific entry points and examples, see each app’s `README.md`.
 ## Current apps
 
 - `barnes-hut/`: Barnes–Hut N‑body simulation (distributed, Morton Z-curve, Dagger).
+- `gpu-cholesky/`: Four-GPU `DArray` Cholesky benchmark (Dagger `master`, vendor-agnostic GPU backends).
 - `game-of-life/`: Conway's Game of Life (serial + Dagger stencil implementation).
 - `heat-propagation/`: 2D heat diffusion with Dagger stencils and GIF animation helper.
 - `pass-at-k-study/`: LLM pass@k comparative study app (Dagger, Iris, Legate).
