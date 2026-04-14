@@ -42,6 +42,8 @@ julia --project=apps/heat-propagation -t16 -e 'include("benchmarks/scripts/heat-
 
 # GPU Cholesky (four GPUs; load CUDA/AMDGPU/oneAPI/Metal before Dagger)
 julia --project=apps/gpu-cholesky -e 'using CUDA; using Dagger; include("benchmarks/scripts/gpu-cholesky.jl"); run_benchmark()'
+# AMD / ROCm (e.g. MI300-class): use AMDGPU first, optional CHOLESKY_DEVICE=amdgpu
+julia --project=apps/gpu-cholesky -e 'using AMDGPU; using Dagger; include("benchmarks/scripts/gpu-cholesky.jl"); run_benchmark()'
 ```
 
 If you want to run from an external project, develop the benchmarks package once:

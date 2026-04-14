@@ -10,7 +10,7 @@ Blocked `LinearAlgebra.cholesky` on a GPU-backed `Dagger.DArray` with **four dev
 
 ## Dagger.jl from `master`
 
-The environment pins **Dagger** to [JuliaParallel/Dagger.jl](https://github.com/JuliaParallel/Dagger.jl) `master` via `Manifest.toml` (`repo-url` / `repo-rev` / `git-tree-sha1`). To refresh to the latest commit:
+The environment pins **Dagger** to [JuliaParallel/Dagger.jl](https://github.com/JuliaParallel/Dagger.jl) `master` via `Project.toml` `[sources]` and `Manifest.toml`. To refresh to the latest commit:
 
 ```julia
 using Pkg
@@ -62,7 +62,7 @@ Example sweep: `CHOLESKY_ALGO=rl,rl_la,ll`. The CSV and NDJSON perf log include 
 
 ## ALCF Polaris compute nodes (interactive / PBS jobs)
 
-- **`git clone git@github.com:...` often fails** on compute nodes (no outbound SSH). Clone or `Pkg.add` from a **login node**, or use **HTTPS** with the ALCF proxy, or use a copy of **Dagger.jl** already on **Eagle** (e.g. `/eagle/dagger/paper/Dagger.jl`) and `Pkg.develop(path="...")`.
+- **`git clone git@github.com:...` often fails** on compute nodes (no outbound SSH). Clone or `Pkg.add` from a **login node**, or use **HTTPS** with the ALCF proxy. To use a local checkout instead of the GitHub pin: `Pkg.develop(path="...")` for **Dagger.jl**.
 - **`rename ... cross-device link not permitted (EXDEV)`** during `Pkg` registry updates: PBS may use `/var/tmp` for downloads while `~/.julia` is on another filesystem. Point temp space at the **same filesystem** as your depot, for example:
   ```bash
   export TMPDIR="${HOME}/.julia/tmp"
@@ -74,6 +74,26 @@ Example sweep: `CHOLESKY_ALGO=rl,rl_la,ll`. The CSV and NDJSON perf log include 
   mkdir -p "$JULIA_DEPOT_PATH"
   ```
   (Use a path under your Eagle allocation; avoid cross-filesystem renames from job `TMPDIR`.)
+
+## AMD MI300 / ROCm batch jobs (SLURM)
+
+- Load your site’s **ROCm** module (and Julia) on the **login or batch node** as required.
+- This benchmark needs **four visible GPU devices** on one node (`HIP_VISIBLE_DEVICES` / `ROCR_VISIBLE_DEVICES` if you must pin devices). See `scripts/amd_rocm_env.sh` for optional exports.
+- Example batch driver (same sweep as `scripts/polaris_cholesky_bench.pbs`, but `using AMDGPU` instead of `using CUDA`):
+
+  ```bash
+  export PROJ=/path/to/parent/of/DaggerApps
+  sbatch scripts/mi300a_cholesky_bench.slurm
+  ```
+
+  Set `JULIA`, `JULIA_PROJECT`, `LOGDIR`, and `#SBATCH` account/partition in that script for your facility.
+
+- One-line interactive test from `DaggerApps` root:
+
+  ```bash
+  CHOLESKY_DEVICE=amdgpu CHOLESKY_NS=1024 CHOLESKY_BLOCK=512 \
+    julia --project=apps/gpu-cholesky -e 'using AMDGPU; using Dagger; include("benchmarks/scripts/gpu-cholesky.jl"); run_benchmark()'
+  ```
 
 ## Library API
 

@@ -1,11 +1,14 @@
 """
 GPU-backed DArray Cholesky benchmark helpers: four-GPU 2×2 block-cyclic assignment,
 SPD matrix as `ones` plus diagonal boost, and optional correctness checks.
+
+Load **one** GPU package (`CUDA`, `AMDGPU`, `oneAPI`, or `Metal`) in `Main` **before** `Dagger`;
+this module does not import a vendor stack at load time.
 """
 module DaggerGpuCholesky
 
-using CUDA: CUDA, CuArray, CuDevice
 using Dagger
+using GPUArrays: unsafe_free!
 using GPUArraysCore: AbstractGPUArray, allowscalar
 using LinearAlgebra
 
@@ -25,7 +28,10 @@ export DEVICE_BACKENDS,
     bench_vendor_cholesky_once!,
     verify_cholesky_small,
     purge_gpu_memory!,
-    unsafe_free_darray!
+    unsafe_free_darray!,
+    vendor_timing_sync!,
+    vendor_gpu_reclaim!,
+    unsafe_free_dense_gpu!
 
 """
     CHOLESKY_ALGORITHMS
@@ -155,22 +161,7 @@ function cholesky_block_cyclic_assignment(
     return assignment
 end
 
-# Host scalar diagonal loop is invalid on CuArray (GPUArrays scalar indexing).
-function _diag_boost_cuda_kernel!(A, δ, n)
-    i = (CUDA.blockIdx().x - 1) * CUDA.blockDim().x + CUDA.threadIdx().x
-    i > n && return nothing
-    @inbounds A[i, i] += δ
-    return nothing
-end
-
-function _diag_boost!(A::CuArray{T,2}, δ::T) where {T}
-    n = min(size(A, 1), size(A, 2))
-    threads = 256
-    blocks = cld(n, threads)
-    CUDA.@cuda threads = threads blocks = blocks _diag_boost_cuda_kernel!(A, δ, n)
-    return A
-end
-
+# Host scalar diagonal loop is invalid on GPU arrays without allowscalar (GPUArrays).
 function _diag_boost!(A::AbstractGPUArray{T,2}, δ::T) where {T}
     n = min(size(A, 1), size(A, 2))
     allowscalar() do
@@ -192,10 +183,10 @@ end
 function _vendor_select_device!(dev::Symbol, device_id::Int)
     device_id ≥ 0 || throw(ArgumentError("device_id must be ≥ 0 (CHOLESKY_VENDOR_DEVICE)"))
     if dev === :cuda
-        devs = CUDA.devices()
+        devs = Main.CUDA.devices()
         device_id < length(devs) ||
             throw(ArgumentError("CHOLESKY_VENDOR_DEVICE=$device_id out of range ($(length(devs)) CUDA devices)"))
-        CUDA.device!(CuDevice(device_id))
+        Main.CUDA.device!(Main.CUDA.CuDevice(device_id))
     elseif dev === :amdgpu
         isdefined(Main, :AMDGPU) || error("AMDGPU not loaded in Main")
         M = Main.AMDGPU
@@ -226,7 +217,7 @@ end
 function _vendor_dense_ones(::Type{T}, N::Int, dev::Symbol, device_id::Int) where {T<:AbstractFloat}
     _vendor_select_device!(dev, device_id)
     if dev === :cuda
-        return CUDA.fill(one(T), N, N)
+        return Main.CUDA.fill(one(T), N, N)
     elseif dev === :amdgpu
         M = Main.AMDGPU
         A = M.ROCArray{T}(undef, N, N)
@@ -246,18 +237,117 @@ function _vendor_dense_ones(::Type{T}, N::Int, dev::Symbol, device_id::Int) wher
     error("Cannot allocate dense GPU matrix for backend: $dev")
 end
 
-function _vendor_synchronize(A::CuArray)
-    CUDA.synchronize()
-    return nothing
-end
-
 function _vendor_synchronize(A::AbstractArray)
-    if isdefined(Main, :AMDGPU) && A isa Main.AMDGPU.ROCArray
+    if isdefined(Main, :CUDA) && A isa Main.CUDA.CuArray
+        Main.CUDA.synchronize()
+    elseif isdefined(Main, :AMDGPU) && A isa Main.AMDGPU.ROCArray
         Main.AMDGPU.synchronize()
     elseif isdefined(Main, :oneAPI) && A isa Main.oneAPI.oneArray
         Main.oneAPI.synchronize()
     elseif isdefined(Main, :Metal) && A isa Main.Metal.MtlArray
         Main.Metal.synchronize()
+    end
+    return nothing
+end
+
+function _sync_all_gpu_devices!(dev::Symbol)
+    if dev === :cuda
+        C = Main.CUDA
+        cur = C.device()
+        for d in C.devices()
+            C.device!(d)
+            C.synchronize()
+        end
+        C.device!(cur)
+    elseif dev === :amdgpu
+        M = Main.AMDGPU
+        cur = M.device()
+        for d in M.devices()
+            M.device!(d)
+            M.synchronize()
+        end
+        M.device!(cur)
+    elseif dev === :oneapi
+        O = Main.oneAPI
+        cur = O.device()
+        for d in O.devices()
+            O.device!(d)
+            O.synchronize()
+        end
+        O.device!(cur)
+    elseif dev === :metal
+        Mt = Main.Metal
+        for d in Mt.devices()
+            Mt.device!(d)
+            Mt.synchronize()
+        end
+    else
+        error("Unknown device for sync: $dev")
+    end
+    return nothing
+end
+
+function _reclaim_all_gpu_devices!(dev::Symbol)
+    if dev === :cuda
+        C = Main.CUDA
+        cur = C.device()
+        for d in C.devices()
+            C.device!(d)
+            C.reclaim()
+        end
+        C.device!(cur)
+    elseif dev === :amdgpu
+        M = Main.AMDGPU
+        cur = M.device()
+        for d in M.devices()
+            M.device!(d)
+            M.reclaim()
+        end
+        M.device!(cur)
+    end
+    return nothing
+end
+
+"""
+    vendor_timing_sync!()
+
+Synchronize the loaded GPU backend (used around vendor timing fences).
+"""
+function vendor_timing_sync!()
+    _vendor_synchronize_for_device(device_from_loaded())
+end
+
+function _vendor_synchronize_for_device(dev::Symbol)
+    if dev === :cuda
+        Main.CUDA.synchronize()
+    elseif dev === :amdgpu
+        Main.AMDGPU.synchronize()
+    elseif dev === :oneapi
+        Main.oneAPI.synchronize()
+    elseif dev === :metal
+        Main.Metal.synchronize()
+    else
+        error("Unknown device: $dev")
+    end
+end
+
+"""
+    vendor_gpu_reclaim!()
+
+Reclaim memory on backends that support it (CUDA, AMDGPU); no-op on others.
+"""
+function vendor_gpu_reclaim!()
+    _reclaim_all_gpu_devices!(device_from_loaded())
+end
+
+"""
+    unsafe_free_dense_gpu!(A)
+
+`unsafe_free!` for a dense GPU matrix (vendor baseline temporaries).
+"""
+function unsafe_free_dense_gpu!(A::AbstractArray)
+    if A isa AbstractGPUArray
+        unsafe_free!(A)
     end
     return nothing
 end
@@ -339,45 +429,36 @@ end
     sync_darray!(A::Dagger.DArray)
 
 Wait for all Dagger tasks backing the DArray to complete, then synchronize
-all CUDA devices.  Unlike `wait_darray!`, this does NOT transfer chunk data
-back to the host — it only ensures all GPU kernels have finished.
+all devices for the **loaded** GPU backend (CUDA, AMDGPU, oneAPI, or Metal).
+Unlike `wait_darray!`, this does not transfer chunk data to the host.
 """
 function sync_darray!(A::Dagger.DArray)
     for c in A.chunks
         wait(c)
     end
-    cur = CUDA.device()
-    for d in CUDA.devices()
-        CUDA.device!(d)
-        CUDA.synchronize()
-    end
-    CUDA.device!(cur)
+    _sync_all_gpu_devices!(device_from_loaded())
     return nothing
 end
 
 function unsafe_free_darray!(A::Dagger.DArray)
     for c in A.chunks
         raw = fetch(c; raw=true)
-        if raw isa CuArray
-            CUDA.unsafe_free!(raw)
+        if raw isa AbstractGPUArray
+            unsafe_free!(raw)
         end
     end
     return nothing
 end
 
 function _purge_gpu_memory!()
-    # Drain Dagger's scheduler chunk cache (holds CuArrays across runs)
+    # Drain Dagger's scheduler chunk cache (holds GPU arrays across runs)
     n = Dagger.clear_chunk_cache!()
     n > 0 && @info "purge: cleared $n CHUNK_CACHE entries"
 
     GC.gc(true)
     GC.gc(true)
-    cur = CUDA.device()
-    for d in CUDA.devices()
-        CUDA.device!(d)
-        CUDA.reclaim()
-    end
-    CUDA.device!(cur)
+    dev = device_from_loaded()
+    _reclaim_all_gpu_devices!(dev)
     return nothing
 end
 const purge_gpu_memory! = _purge_gpu_memory!
@@ -438,6 +519,20 @@ _sync_if_darray(A::LinearAlgebra.Adjoint) = _sync_if_darray(parent(A))
 _sync_if_darray(A::LinearAlgebra.Transpose) = _sync_if_darray(parent(A))
 _sync_if_darray(_) = nothing
 
+function _dense_like_da_for_verify(::Type{T}, A_host::Matrix{T}) where {T<:Real}
+    dev = device_from_loaded()
+    if dev === :cuda
+        return Main.CUDA.CuArray(A_host)
+    elseif dev === :amdgpu
+        return Main.AMDGPU.ROCArray(A_host)
+    elseif dev === :oneapi
+        return Main.oneAPI.oneArray(A_host)
+    elseif dev === :metal
+        return Main.Metal.MtlArray(A_host)
+    end
+    error("Cannot build dense GPU matrix for verify on device: $dev")
+end
+
 """
     verify_cholesky_small(DA; rtol=1e-4) -> Bool
 
@@ -445,11 +540,12 @@ Vendor (single-GPU) reference for correctness checking.
 """
 function verify_cholesky_small(DA::Dagger.DArray{T,2}; rtol::Real=1e-4) where {T<:Real}
     Fd = Dagger.darray_cholesky!(copy(DA))
-    _ensure_chol_factor_materialized!(Fd)
+    _sync_chol_factor!(Fd)
     Ld = collect(Fd.L)
-    A_gpu = CuArray(collect(DA))
+    A_host = collect(DA)
+    A_gpu = _dense_like_da_for_verify(T, A_host)
     Fc = LinearAlgebra.cholesky!(LinearAlgebra.Hermitian(A_gpu, :L))
-    CUDA.synchronize()
+    _vendor_synchronize(A_gpu)
     Lc = Array(Fc.L)
     return isapprox(Ld, Lc; rtol=rtol)
 end
