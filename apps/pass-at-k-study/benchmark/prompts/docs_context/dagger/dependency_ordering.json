@@ -1,0 +1,5 @@
+{
+  "title": "Dagger dependency ordering",
+  "source_url": "https://juliaparallel.org/Dagger.jl/dev/",
+  "excerpt": "To preserve old-state/new-state semantics in iterative algorithms, build each iteration from the previous iteration output instead of mutating shared state out of order. Explicitly chain task outputs so the scheduler enforces dependency correctness."
+}

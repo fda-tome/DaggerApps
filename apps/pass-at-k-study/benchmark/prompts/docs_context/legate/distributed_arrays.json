@@ -1,0 +1,5 @@
+{
+  "title": "Legate distributed arrays",
+  "source_url": "https://docs.nvidia.com/legate/latest/",
+  "excerpt": "Use cuPyNumeric arrays and vectorized operations to describe distributed computations. Avoid Python element-wise loops when possible; favor bulk array expressions so the runtime can optimize partitioning and execution."
+}

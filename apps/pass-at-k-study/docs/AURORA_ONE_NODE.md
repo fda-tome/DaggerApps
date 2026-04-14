@@ -20,7 +20,7 @@ Aurora uses **PBS Pro** (not Slurm). One node has **6 GPU tiles** (12 Intel Data
    # In your repo on Aurora (e.g. $WORK/dagger-llm-study or $HOME/dagger-llm-study)
    qsub -v REPO_ROOT="$(pwd)" scripts/aurora_job.pbs
    ```
-   Or edit `scripts/aurora_job.pbs`: set `#PBS -A PROJECT_ALLOCATION` to your ALCF project, then:
+   `scripts/aurora_job.pbs` uses `#PBS -A dagger`. Then:
    ```bash
    qsub scripts/aurora_job.pbs
    ```
@@ -66,7 +66,7 @@ The provided `aurora_job.pbs` does **not** start Ollama or any inference by defa
 - **One node:** `#PBS -l select=1`.  
 - **Queues:** e.g. `debug` (short, 1–2 nodes), `capacity` (longer, multi-node). Use the queue names and limits from the current [ALCF Aurora Running Jobs](https://docs.alcf.anl.gov/aurora/running-jobs-aurora/) documentation.  
 - **Filesystems:** Request the filesystems where your repo and data live (e.g. `home:flare`).  
-- **Project:** Replace `PROJECT_ALLOCATION` in `aurora_job.pbs` with your ALCF project code.
+- **Project:** `aurora_job.pbs` uses `#PBS -A dagger` (edit if needed).
 
 Submit from the directory that contains your repo (or set `REPO_ROOT`):
 

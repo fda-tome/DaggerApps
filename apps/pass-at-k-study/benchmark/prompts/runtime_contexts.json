@@ -1,0 +1,23 @@
+{
+  "dagger": {
+    "runtime_name": "Dagger.jl",
+    "language_name": "Julia",
+    "code_fence_lang": "julia",
+    "repo_url": "https://github.com/JuliaParallel/Dagger.jl",
+    "docs_url": "https://juliaparallel.org/Dagger.jl/dev/"
+  },
+  "iris": {
+    "runtime_name": "IRIS",
+    "language_name": "C++",
+    "code_fence_lang": "cpp",
+    "repo_url": "https://github.com/ORNL/iris",
+    "docs_url": "https://iris-programming.readthedocs.io/en/latest/"
+  },
+  "legate": {
+    "runtime_name": "NVIDIA Legate",
+    "language_name": "Python",
+    "code_fence_lang": "python",
+    "repo_url": "https://github.com/nv-legate/legate",
+    "docs_url": "https://docs.nvidia.com/legate/latest/"
+  }
+}

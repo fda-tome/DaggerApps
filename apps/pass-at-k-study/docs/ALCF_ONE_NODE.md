@@ -26,7 +26,7 @@ Both systems use **PBS Pro**. This doc covers running the pipeline on a single n
    # Polaris
    qsub scripts/polaris_job.pbs
    ```
-   Edit the script first: set `#PBS -A YOUR_ALCF_PROJECT`. The job runs Phase 2 and Phase 3 only.
+   The PBS scripts use `#PBS -A dagger`. The job runs Phase 2 and Phase 3 only.
 
 ---
 
@@ -40,12 +40,21 @@ Polaris nodes have **NVIDIA A100** GPUs, so **Ollama** (or any CUDA-based infere
 
 1. In an interactive session or a one-node job, install Ollama (or use a pre-built binary in `$HOME/bin`):
    ```bash
-   # Interactive: qsub -I -l select=1:system=polaris -l walltime=1:00:00 -l filesystems=home:eagle -q debug -A PROJECT
+   # Interactive: qsub -I -l select=1:system=polaris -l walltime=1:00:00 -l filesystems=home:eagle -q debug -A dagger
    curl -fsSL https://ollama.com/install.sh | sh
    export PATH=$HOME/bin:$PATH  # if you installed to $HOME/bin
    ollama serve &   # background
    ollama pull qwen2.5-coder:7b
    ```
+
+   **All 4 GPUs + `nohup` (good for interactive Polaris):** from the app directory run:
+   ```bash
+   cd /path/to/DaggerApps/apps/pass-at-k-study
+   bash scripts/start_ollama_4gpu_background.sh "your-model:tag"   # starts serve; pulls that model
+   # or: bash scripts/start_ollama_4gpu_background.sh            # serve only, pull later
+   ```
+   This sets `CUDA_VISIBLE_DEVICES=0,1,2,3`, starts `ollama serve` in the background, waits until the API is up, then optionally runs `ollama pull`. Logs: `/tmp/ollama-$USER.log`.
+
 2. Run the full pipeline in the same session (or in a batch script that starts `ollama serve` in the background):
    ```bash
    cd $HOME/dagger-llm-study   # or REPO_ROOT
@@ -63,7 +72,6 @@ Polaris nodes have **NVIDIA A100** GPUs, so **Ollama** (or any CUDA-based infere
 Use the provided full-pipeline script and set your project:
 
 ```bash
-# Edit scripts/polaris_full_job.pbs: set #PBS -A YOUR_PROJECT
 qsub scripts/polaris_full_job.pbs
 ```
 
@@ -88,10 +96,11 @@ For most users, **Option A (generate elsewhere, run eval+analyze on Aurora)** is
 | `scripts/aurora_job.pbs`   | Aurora  | Eval + Analyze only (or add your own Phase 1). |
 | `scripts/polaris_job.pbs`  | Polaris | Eval + Analyze only (or add your own Phase 1). |
 | `scripts/polaris_full_job.pbs` | Polaris | Full pipeline (Generate + Eval + Analyze) using Ollama on the node. |
+| `scripts/start_ollama_4gpu_background.sh` | Polaris (etc.) | `nohup ollama serve` with `CUDA_VISIBLE_DEVICES=0,1,2,3`; optional `ollama pull`. |
 
 Before submitting:
 
-- Set **`#PBS -A YOUR_ALCF_PROJECT`** in the script.
+- PBS scripts use **`#PBS -A dagger`** (change if your allocation differs).
 - Ensure **Python** (venv/conda with `pip install -e .`) and **Julia** (`julia --project=. -e 'using Pkg; Pkg.instantiate()'`) are set up in the job environment.
 - Submit from the repo directory, or pass **`REPO_ROOT`**:  
   `qsub -v REPO_ROOT=/path/to/dagger-llm-study scripts/polaris_job.pbs`

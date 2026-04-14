@@ -16,7 +16,7 @@ const DEFAULT_TIMEOUT = 120.0
 
 include(joinpath(RUNNERS_DIR, "runners.jl"))
 
-const FRAMEWORK_LANGUAGE = Dict("dagger" => "julia", "iris" => "cpp", "legate" => "python", "parsec" => "c")
+const FRAMEWORK_LANGUAGE = Dict("dagger" => "julia", "iris" => "cpp", "legate" => "python")
 
 """Extract first fenced code block for given language (julia, cpp, c, python, etc.)."""
 function extract_first_code_block(text::AbstractString, lang::String)::String
@@ -30,10 +30,21 @@ function extract_first_julia_block(text::AbstractString)::String
     extract_first_code_block(text, "julia")
 end
 
-function task_name_to_module(task_name::String)::Symbol
-    parts = split(task_name, "_")
-    name = join([titlecase(p) for p in parts], "")
-    Symbol(name)
+"""Last non-empty line of stdout. `println(json)` leaves a trailing `\\n`, so `split(s,'\\n')[end]` is often empty."""
+function last_nonempty_stdout_line(stdout_str::String)::String
+    for part in Iterators.reverse(split(stdout_str, '\n'))
+        t = strip(part)
+        isempty(t) || return t
+    end
+    return ""
+end
+
+"""`module Foo` name from the first line of a task file (avoids e.g. `L1DarrayCreate` vs `L1DArrayCreate`)."""
+function module_symbol_from_task_path(task_path::AbstractString)::Symbol
+    line = readline(task_path)
+    m = match(r"^module\s+(\w+)"s, line)
+    m === nothing && error("missing leading `module` in $task_path")
+    Symbol(m.captures[1])
 end
 
 function run_one_test_case!(tc, entry_sym::Symbol, results::Vector, mod)
@@ -64,8 +75,17 @@ function run_one_test_case!(tc, entry_sym::Symbol, results::Vector, mod)
             end
             push!(results, (pass=ok, error=nothing))
         elseif haskey(tc, :N) && tc.check == :shape_only
-            C = getfield(Main, entry_sym)(tc.N)
+            C = if haskey(tc, :block_size)
+                getfield(Main, entry_sym)(tc.N, tc.block_size)
+            else
+                getfield(Main, entry_sym)(tc.N)
+            end
             push!(results, (pass=C isa Matrix{Float32} && size(C) == (tc.N, tc.N), error=nothing))
+        elseif haskey(tc, :N) && haskey(tc, :expected) && tc.check == :scalar_expected
+            s = getfield(Main, entry_sym)(tc.N)
+            expv = Float32(tc.expected)
+            ok = s isa Float32 && isapprox(s, expv; rtol=1.0f-3, atol=1.0f-3)
+            push!(results, (pass=ok, error=nothing))
         elseif haskey(tc, :N) && tc.check == :scalar_finite
             s = getfield(Main, entry_sym)(tc.N)
             push!(results, (pass=isa(s, Float32) && isfinite(s), error=nothing))
@@ -90,13 +110,14 @@ function evaluate_sample(task_name::String, task_file::String, code::String; fra
     code_file = tempname() * ".jl"
     write(code_file, code)
     try
+        mod_sym = module_symbol_from_task_path(joinpath(fw_dir, task_file))
         # Run in a subprocess. Load task_utils via -L so "using" in it is at top level; runner does the rest.
         script = """
         cd(raw"$(REPO_ROOT)")
         using JSON3
         include(raw"$(joinpath(fw_dir, task_file))")
         include(raw"$(code_file)")
-        mod = getfield(Main, Symbol($(repr(String(task_name_to_module(task_name))))))
+        mod = getfield(Main, Symbol($(repr(String(mod_sym)))))
         results = []
         for tc in mod.TEST_CASES
             try
@@ -114,8 +135,16 @@ function evaluate_sample(task_name::String, task_file::String, code::String; fra
                     C = getfield(Main, mod.ENTRY_FUNCTION)(tc.N)
                     push!(results, Dict("pass" => (C isa Matrix{Float32} && size(C) == (tc.N, tc.N) && isfinite(norm(C))), "error" => nothing))
                 elseif haskey(tc, :N) && tc.check == :shape_only
-                    C = getfield(Main, mod.ENTRY_FUNCTION)(tc.N)
+                    C = if haskey(tc, :block_size)
+                        getfield(Main, mod.ENTRY_FUNCTION)(tc.N, tc.block_size)
+                    else
+                        getfield(Main, mod.ENTRY_FUNCTION)(tc.N)
+                    end
                     push!(results, Dict("pass" => (C isa Matrix{Float32} && size(C) == (tc.N, tc.N)), "error" => nothing))
+                elseif haskey(tc, :N) && haskey(tc, :expected) && tc.check == :scalar_expected
+                    s = getfield(Main, mod.ENTRY_FUNCTION)(tc.N)
+                    expv = Float32(tc.expected)
+                    push!(results, Dict("pass" => (s isa Float32 && isapprox(s, expv; rtol=1.0f-3, atol=1.0f-3)), "error" => nothing))
                 elseif haskey(tc, :N) && tc.check == :scalar_finite
                     s = getfield(Main, mod.ENTRY_FUNCTION)(tc.N)
                     push!(results, Dict("pass" => (isa(s, Float32) && isfinite(s)), "error" => nothing))
@@ -137,7 +166,8 @@ function evaluate_sample(task_name::String, task_file::String, code::String; fra
             out_io = IOBuffer()
             err_io = IOBuffer()
             task_utils_path = joinpath(fw_dir, "task_utils.jl")
-            cmd = pipeline(`julia --project=$(REPO_ROOT) -L $(task_utils_path) $(runner_file)`, stdout=out_io, stderr=err_io)
+            # Tasks pin to `GPU_SCOPES` (length 4); `task_utils` falls back to thread scopes, so need ≥4 threads.
+            cmd = pipeline(`julia -t 4 --project=$(REPO_ROOT) -L $(task_utils_path) $(runner_file)`, stdout=out_io, stderr=err_io)
             start = time()
             proc = run(cmd, wait=false)
             while process_running(proc)
@@ -151,9 +181,28 @@ function evaluate_sample(task_name::String, task_file::String, code::String; fra
             if !exit_ok
                 return (passed=false, results=[], elapsed=elapsed, error="timeout or non-zero exit", stderr=stderr_str)
             end
-            # Parse JSON from last line
-            line = strip(split(stdout_str, '\n')[end])
-            data = JSON3.read(line)
+            # Parse JSON from last non-empty line (println() adds trailing newline → split()[end] was "")
+            line = last_nonempty_stdout_line(stdout_str)
+            if isempty(line)
+                return (
+                    passed=false,
+                    results=[],
+                    elapsed=elapsed,
+                    error="empty runner stdout (expected JSON line)",
+                    stderr=stderr_str,
+                )
+            end
+            data = try
+                JSON3.read(line)
+            catch e
+                return (
+                    passed=false,
+                    results=[],
+                    elapsed=elapsed,
+                    error="invalid runner JSON: $(sprint(showerror, e)); line=$(repr(first(line, 200)))",
+                    stderr=stderr_str,
+                )
+            end
             results = [r.pass for r in data.results]
             all_pass = all(results)
             return (passed=all_pass, results=results, elapsed=elapsed, error=nothing, stderr=stderr_str)
@@ -162,6 +211,21 @@ function evaluate_sample(task_name::String, task_file::String, code::String; fra
         end
     finally
         rm(code_file; force=true)
+    end
+end
+
+include(joinpath(UTILS_DIR, "native_reference.jl"))
+
+function evaluate_native_reference(task::String, task_file::String, framework::String)
+    code = native_reference_code(REPO_ROOT, framework, task_file)
+    if framework == "dagger"
+        evaluate_sample(task, task_file, code; framework=framework)
+    elseif framework == "iris"
+        run_iris(task, task_file, code, ""; timeout_sec=DEFAULT_TIMEOUT)
+    elseif framework == "legate"
+        run_legate(task, task_file, code, ""; timeout_sec=DEFAULT_TIMEOUT)
+    else
+        (passed=false, results=Bool[], elapsed=0.0, error="unknown framework: $framework", stderr="")
     end
 end
 
@@ -182,9 +246,12 @@ function main()
         [JSON3.read(line) for line in eachline(io) if !isempty(strip(line))]
     end
 
+    # One native-reference run per (framework, task); same canonical source as benchmark/tasks/<fw>/.
+    ref_cache = Dict{Tuple{String,String},NamedTuple}()
+
     open(out_path, "w") do out_io
         @showprogress "Evaluating..." for rec in records
-            task = rec.task
+            task = String(rec.task)
             task_file = String(rec.task_file)
             model = String(rec.model)
             sample_id = rec.sample_id
@@ -198,12 +265,26 @@ function main()
                 run_iris(task, task_file, code, response; timeout_sec=DEFAULT_TIMEOUT)
             elseif framework == "legate"
                 run_legate(task, task_file, code, response; timeout_sec=DEFAULT_TIMEOUT)
-            elseif framework == "parsec"
-                run_parsec(task, task_file, code, response; timeout_sec=DEFAULT_TIMEOUT)
             else
                 (passed=false, results=Bool[], elapsed=0.0, error="unknown framework: $framework", stderr="")
             end
-            write(out_io, JSON3.write(Dict(
+            ref_key = (framework, task)
+            if !haskey(ref_cache, ref_key)
+                rref = evaluate_native_reference(task, task_file, framework)
+                ref_cache[ref_key] = (;
+                    passed = rref.passed,
+                    elapsed_sec = Float64(rref.elapsed),
+                    error = rref.error === nothing ? nothing : String(something(rref.error, "")),
+                    stderr = String(rref.stderr),
+                )
+            end
+            ref = ref_cache[ref_key]
+            ratio = if ref.elapsed_sec > 0 && isfinite(res.elapsed)
+                Float64(res.elapsed) / ref.elapsed_sec
+            else
+                nothing
+            end
+            row = Dict{String,Any}(
                 "task" => task,
                 "task_file" => task_file,
                 "model" => model,
@@ -214,7 +295,13 @@ function main()
                 "elapsed_sec" => res.elapsed,
                 "error" => res.error,
                 "stderr" => res.stderr,
-            )) * "\n")
+                "reference_passed" => ref.passed,
+                "reference_elapsed_sec" => ref.elapsed_sec,
+                "reference_stderr" => ref.stderr,
+            )
+            ref.error !== nothing && (row["reference_error"] = ref.error)
+            ratio !== nothing && (row["sample_elapsed_over_reference"] = ratio)
+            write(out_io, JSON3.write(row) * "\n")
         end
     end
     println("Wrote ", out_path)

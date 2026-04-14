@@ -14,8 +14,7 @@ Using Dagger.jl, write a Julia function `pinned_gemm(N::Int, block_size::Int)` t
 4. Performs `DC = DA * DB` (out-of-place multiply)
 5. Returns collect(DC) as Matrix{Float32}
 
-The `assignment` keyword takes a Matrix of scopes with shape (n_blocks, n_blocks).
-GPU_SCOPES is already in scope as a Vector of 4 scopes.
+The `assignment` keyword expects a matrix of `Dagger.ThreadProc` (or other `Processor`) values with shape (n_blocks, n_blocks). Use worker id `1` and thread ids `1:4` in the same round-robin pattern as `GPU_SCOPES[(i + j - 2) % 4 + 1]` would imply for CPU thread fallback.
 
 Function signature:
     pinned_gemm(N::Int, block_size::Int) -> Matrix{Float32}
@@ -24,7 +23,7 @@ Function signature:
 const REFERENCE_SOLUTION = """
 function pinned_gemm(N::Int, block_size::Int)
     n_blocks = N ÷ block_size
-    assignment = [GPU_SCOPES[(i + j - 2) % 4 + 1]
+    assignment = [Dagger.ThreadProc(1, mod1(i + j - 1, 4))
                   for i in 1:n_blocks, j in 1:n_blocks]
     DA = rand(Blocks(block_size, block_size), Float32, N, N; assignment=assignment)
     DB = rand(Blocks(block_size, block_size), Float32, N, N; assignment=assignment)

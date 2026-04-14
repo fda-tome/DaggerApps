@@ -1,6 +1,6 @@
 #!/bin/bash
 #PBS -N dagger-llm-study
-#PBS -A PROJECT_ALLOCATION
+#PBS -A dagger
 #PBS -l select=1
 #PBS -l walltime=02:00:00
 #PBS -l filesystems=home:flare
@@ -54,4 +54,4 @@ fi
 echo "Phase 3: Analyze $EVAL ..."
 julia --project=. src/analyze.jl "$EVAL"
 
-echo "Done. Check figures/ and tables/."
+echo "Done. Check figures/*.png and tables/*.md."

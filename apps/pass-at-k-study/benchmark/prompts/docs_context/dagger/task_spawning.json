@@ -1,0 +1,5 @@
+{
+  "title": "Dagger task spawning patterns",
+  "source_url": "https://juliaparallel.org/Dagger.jl/dev/task-spawn/",
+  "excerpt": "Use Dagger.@spawn to launch asynchronous work and collect results with fetch. Independent tasks can be launched in a loop, stored as handles, and then materialized after all are scheduled to expose available parallelism."
+}

@@ -1,0 +1,5 @@
+{
+  "title": "IRIS runtime basics",
+  "source_url": "https://iris-programming.readthedocs.io/en/latest/",
+  "excerpt": "IRIS applications create tasks, bind memory objects, and submit commands to target devices. Dependency-aware command submission and explicit host-device memory management are central to preserving correctness while exposing parallel execution."
+}

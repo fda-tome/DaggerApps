@@ -12,7 +12,7 @@ For each output tile C[i,j], accumulate contributions from all k tiles:
 
 Requirements:
 1. Allocate DA, DB as random Float32 DArrays (N×N, Blocks(block_size, block_size))
-   with round-robin GPU_SCOPES assignment (same formula as: GPU_SCOPES[(i+j-2)%4+1])
+   with round-robin block assignment using `Dagger.ThreadProc(1, mod1(i+j-1, 4))` (CPU thread analogue of GPU_SCOPES round-robin)
 2. Allocate DC as zeros with the same assignment
 3. Use `Dagger.spawn_datadeps()` wrapping an explicit triple loop over (i, j, k)
    where each inner step calls:
@@ -30,7 +30,7 @@ Function signature:
 const REFERENCE_SOLUTION = """
 function streaming_gemm(N::Int, block_size::Int)
     n_blk  = N ÷ block_size
-    asgn   = [GPU_SCOPES[(i+j-2)%4+1] for i in 1:n_blk, j in 1:n_blk]
+    asgn   = [Dagger.ThreadProc(1, mod1(i + j - 1, 4)) for i in 1:n_blk, j in 1:n_blk]
     DA = rand(Blocks(block_size, block_size), Float32, N, N; assignment=asgn)
     DB = rand(Blocks(block_size, block_size), Float32, N, N; assignment=asgn)
     DC = zeros(Blocks(block_size, block_size), Float32, N, N; assignment=asgn)

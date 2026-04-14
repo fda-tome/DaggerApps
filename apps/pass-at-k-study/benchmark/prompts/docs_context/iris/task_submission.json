@@ -1,0 +1,5 @@
+{
+  "title": "IRIS task submission and synchronization",
+  "source_url": "https://iris-programming.readthedocs.io/en/latest/",
+  "excerpt": "Schedule kernels as runtime tasks and synchronize only when required for validation. For independent work units, enqueue all tasks first, then wait/join to maximize overlap and throughput."
+}

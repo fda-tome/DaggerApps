@@ -1,0 +1,14 @@
+[
+  { "id": "l1_basic_spawn", "name": "l1_basic_spawn", "task_file": "l1_basic_spawn.jl" },
+  { "id": "l1_darray_create", "name": "l1_darray_create", "task_file": "l1_darray_create.jl" },
+  { "id": "l2_dependent_pipeline", "name": "l2_dependent_pipeline", "task_file": "l2_dependent_pipeline.jl" },
+  { "id": "l2_gemm_scoped", "name": "l2_gemm_scoped", "task_file": "l2_gemm_scoped.jl" },
+  { "id": "l3_dependency_chain_reduce", "name": "l3_dependency_chain_reduce", "task_file": "l3_dependency_chain_reduce.jl" },
+  { "id": "l3_partitioned_exchange_validate", "name": "l3_partitioned_exchange_validate", "task_file": "l3_partitioned_exchange_validate.jl" },
+  { "id": "l3_assignment_pinning", "name": "l3_assignment_pinning", "task_file": "l3_assignment_pinning.jl" },
+  { "id": "l3_tiled_gemm_datadeps", "name": "l3_tiled_gemm_datadeps", "task_file": "l3_tiled_gemm_datadeps.jl" },
+  { "id": "l4_distributed_solver_step", "name": "l4_distributed_solver_step", "task_file": "l4_distributed_solver_step.jl" },
+  { "id": "l4_fault_tolerant_aggregation", "name": "l4_fault_tolerant_aggregation", "task_file": "l4_fault_tolerant_aggregation.jl" },
+  { "id": "l4_custom_scope", "name": "l4_custom_scope", "task_file": "l4_custom_scope.jl" },
+  { "id": "l4_outofcore_gemm", "name": "l4_outofcore_gemm", "task_file": "l4_outofcore_gemm.jl" }
+]

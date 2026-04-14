@@ -26,4 +26,4 @@ EVAL=$(ls -t outputs/evaluated/*.jsonl 2>/dev/null | head -1)
 test -n "$EVAL" || { echo "No evaluated file."; exit 1; }
 julia --project=. src/analyze.jl "$EVAL"
 
-echo "=== Done. Check figures/ and tables/ ==="
+echo "=== Done. Check figures/*.png and tables/*.md ==="
