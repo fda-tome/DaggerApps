@@ -20,8 +20,8 @@ _cholesky_clean_ld() {
 
 echo "=== DaggerApps paper / full tier (parameter env only) ==="
 
-# Clear pass@k smoke overrides if present in caller environment
-unset PASSK_SKIP_GENERATE PASSK_GENERATED PASSK_TASK PASSK_OUTPUT PASSK_API_BASE PASSK_API_KEY || true
+# Clear pass@k smoke-only skip/generate overrides (keep PASSK_TASK / PASSK_OUTPUT if set for a scoped paper run)
+unset PASSK_SKIP_GENERATE PASSK_GENERATED PASSK_API_BASE PASSK_API_KEY || true
 
 # --- Cholesky ---
 (

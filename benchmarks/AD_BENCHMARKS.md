@@ -108,7 +108,7 @@ bash scripts/run_full_study.sh gpt-4o-mini 5
 | Tier | Parameters |
 |------|------------|
 | **Reduced** | `PASSK_TASK=l1_basic_spawn`, `PASSK_OUTPUT=outputs/generated/smoke.jsonl`, second arg `2` for `--n-samples`; optional `API_BASE` for Ollama |
-| **Paper** | All tasks (no `PASSK_TASK`), default output naming, `--n-samples` 5 (or AD value) |
+| **Paper** | All tasks (no `PASSK_TASK`), default output naming, `--n-samples` 5 (or AD value). To scope the paper orchestrator to one task, export `PASSK_TASK` / `PASSK_OUTPUT` before `run_paper_all.sh` (same `run_full_study.sh` entrypoint). |
 
 Optional env for **`run_full_study.sh`** (same script for all tiers):
 
