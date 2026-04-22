@@ -53,6 +53,20 @@ unset PASSK_SKIP_GENERATE PASSK_GENERATED PASSK_TASK PASSK_OUTPUT PASSK_API_BASE
     || echo "[skip] seam-carving"
 ) || true
 
+# --- Seam Westrick thread sweep ---
+(
+  export OMP_NUM_THREADS="${OMP_NUM_THREADS:-1}"
+  export MKL_NUM_THREADS="${MKL_NUM_THREADS:-1}"
+  export OPENBLAS_NUM_THREADS="${OPENBLAS_NUM_THREADS:-1}"
+  export SEAM_THREAD_SWEEP="${SEAM_THREAD_SWEEP:-1,2,4,8,16,32,52}"
+  export BENCH_RUNS="${BENCH_RUNS:-3}"
+  export SEAM_ROWS="${SEAM_ROWS:-512}"
+  export SEAM_COLS="${SEAM_COLS:-512}"
+  export SEAM_SCENARIOS="${SEAM_SCENARIOS:-both}"
+  julia benchmarks/scripts/seam-westrick-scaling.jl \
+    || echo "[skip] seam-westrick-scaling"
+) || true
+
 # --- Game of life ---
 (
   export LIFE_ROWS="${LIFE_ROWS:-1024}"

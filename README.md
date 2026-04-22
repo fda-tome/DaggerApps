@@ -9,6 +9,8 @@ and AMD), Barnes–Hut, seam carving, stencil (`main` baseline), and the LLM
 pass@k study. See **[BRANCHES_SC26.md](BRANCHES_SC26.md)** for full SHAs, merge
 order, and entrypoint paths.
 
+**Dual tiers (AE vs paper)** use the **same** benchmark scripts and `run_benchmark()` entrypoints; only environment variables and numeric flags differ. See **[benchmarks/AD_BENCHMARKS.md](benchmarks/AD_BENCHMARKS.md)**. Thin orchestrators: `benchmarks/run_smoke_all.sh` and `benchmarks/run_paper_all.sh`.
+
 ## Repo layout
 
 ```
@@ -16,7 +18,7 @@ DaggerApps/
 ├── apps/                      # Dagger applications (one folder per app)
 │   ├── barnes-hut/            # Barnes–Hut N-body simulation (distributed, Morton Z-curve)
 │   ├── game-of-life/          # Conway's Game of Life (stencil-based)
-│   ├── gpu-cholesky/          # Multi-GPU DArray Cholesky benchmark (Dagger master)
+│   ├── gpu-cholesky/          # Multi-GPU DArray Cholesky benchmark (Dagger fda/sc26-ad)
 │   ├── heat-propagation/      # 2D heat diffusion + animation
 │   ├── pass-at-k-study/       # LLM pass@k comparative benchmark app
 │   └── seam-carving/          # Content-aware image resizing (seam carving)
@@ -28,7 +30,7 @@ DaggerApps/
 From the repo root, single‑node (no Distributed workers):
 
 ```bash
-julia --project=apps/seam-carving -t16 -e 'include("benchmarks/scripts/seam-carving.jl"); run_benchmark()'
+julia --threads=auto --project=apps/seam-carving -e 'using Dagger; include("benchmarks/scripts/seam-carving.jl"); run_benchmark()'
 ```
 
 Results are written to `benchmarks/results/seam-carving/<timestamp>/`.
@@ -36,7 +38,7 @@ Results are written to `benchmarks/results/seam-carving/<timestamp>/`.
 Quick start (game-of-life benchmark):
 
 ```bash
-julia --project=apps/game-of-life -t16 -e 'include("benchmarks/scripts/game-of-life.jl"); run_benchmark()'
+julia --project=apps/game-of-life -e 'using Dagger; include("benchmarks/scripts/game-of-life.jl"); run_benchmark()'
 ```
 
 Results are written to `benchmarks/results/game-of-life/<timestamp>/`.
@@ -65,16 +67,17 @@ julia --project=apps/heat-propagation apps/heat-propagation/scripts/animate.jl
 Quick start (heat propagation benchmark):
 
 ```bash
-julia --project=apps/heat-propagation -t16 -e 'include("benchmarks/scripts/heat-propagation.jl"); run_benchmark()'
+julia --project=apps/heat-propagation -e 'using Dagger; include("benchmarks/scripts/heat-propagation.jl"); run_benchmark()'
 ```
 
 Quick start (Barnes–Hut benchmark; optional `addprocs(N)` for distributed):
 
 ```bash
-julia --project=apps/barnes-hut -e 'include("benchmarks/scripts/barnes-hut.jl"); run_benchmark()'
+export BARNES_NPROCS=4
+julia --project=apps/barnes-hut -e 'using Dagger; include("benchmarks/scripts/barnes-hut.jl"); run_benchmark()'
 ```
 
-Quick start (GPU Cholesky benchmark; **four GPUs**; load a vendor package before `Dagger`):
+Quick start (GPU Cholesky benchmark; **1–4 GPUs** via `CHOLESKY_NUM_GPUS`; load a vendor package before `Dagger`):
 
 ```bash
 julia --project=apps/gpu-cholesky -e 'using CUDA; using Dagger; include("benchmarks/scripts/gpu-cholesky.jl"); run_benchmark()'
@@ -94,7 +97,7 @@ julia --project=. -e 'using DaggerAppsBenchmarks; run_heat_propagation()'
 julia --project=. -e 'using DaggerAppsBenchmarks; run_barnes_hut()'
 ```
 
-For **gpu-cholesky**, prefer `--project=apps/gpu-cholesky` so the environment pins **Dagger.jl** to GitHub `master` (see `apps/gpu-cholesky/Manifest.toml`). The `DaggerAppsBenchmarks` helper can call `run_gpu_cholesky()` but uses whatever Dagger version the active project resolves.
+For **gpu-cholesky**, prefer `--project=apps/gpu-cholesky` so the environment pins **Dagger.jl** to GitHub branch **`fda/sc26-ad`** (see each app’s `Project.toml` `[sources]` and `Manifest.toml`). The `DaggerAppsBenchmarks` helper can call `run_gpu_cholesky()` but uses whatever Dagger version the active project resolves.
 
 This uses the `DaggerAppsBenchmarks` helper package (defined in `benchmarks/scripts/`).
 

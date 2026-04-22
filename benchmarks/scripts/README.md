@@ -16,7 +16,7 @@ julia --project=benchmarks/scripts -t16 -e 'include("benchmarks/scripts/game-of-
 julia --project=benchmarks/scripts -t16 -e 'include("benchmarks/scripts/heat-propagation.jl"); run_benchmark()'
 ```
 
-GPU Cholesky should use the **app** project (Dagger from `master`), not `benchmarks/scripts` alone:
+GPU Cholesky should use the **app** project (Dagger from **`fda/sc26-ad`**), not `benchmarks/scripts` alone:
 
 ```bash
 julia --project=apps/gpu-cholesky -e 'using CUDA; using Dagger; include("benchmarks/scripts/gpu-cholesky.jl"); run_benchmark()'

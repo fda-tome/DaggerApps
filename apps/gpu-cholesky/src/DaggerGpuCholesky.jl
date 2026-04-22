@@ -1,5 +1,5 @@
 """
-GPU-backed DArray Cholesky benchmark helpers: four-GPU 2×2 block-cyclic assignment,
+GPU-backed DArray Cholesky benchmark helpers: tile assignment for **1–4** GPUs (2×2 block-cyclic when `np==4`),
 SPD matrix as `ones` plus diagonal boost, and optional correctness checks.
 
 Load **one** GPU package (`CUDA`, `AMDGPU`, `oneAPI`, or `Metal`) in `Main` **before** `Dagger`;
@@ -18,7 +18,9 @@ export DEVICE_BACKENDS,
     resolve_device_strict,
     device_from_loaded,
     four_gpu_processors,
+    gpu_processors_for_cholesky,
     cholesky_block_cyclic_assignment,
+    cholesky_tile_assignment,
     spd_ones_darray,
     spd_ones_dense_vendor,
     wait_darray!,
@@ -125,42 +127,87 @@ function resolve_device_strict()
     error("Unreachable")
 end
 
-"""
-    four_gpu_processors() -> Vector{<:Dagger.Processor}
+function _parse_positive_int_env(key::String, default::Int)::Int
+    v = strip(get(ENV, key, string(default)))
+    isempty(v) && return default
+    n = parse(Int, v)
+    n < 1 && throw(ArgumentError("$key must be ≥ 1, got $n"))
+    return n
+end
 
-Return four distinct GPU array processors for the current OS process, sorted by device id.
-Requires ≥4 visible devices of one backend. Use smaller `CHOLESKY_NS` / `CHOLESKY_K_*`
-for faster runs; the driver does not support fewer than four GPUs because the tiled
-algorithm uses a 2×2 block-cyclic layout over four processors.
 """
-function four_gpu_processors()
+    gpu_processors_for_cholesky() -> Vector{<:Dagger.Processor}
+
+Return up to `min(CHOLESKY_NUM_GPUS, n_visible)` GPU array processors (sorted by device id).
+`CHOLESKY_NUM_GPUS` defaults to **4** (paper layout); set to **1** for single-GPU Dagger runs
+using the same `darray_cholesky!` path with a degenerate tile assignment.
+"""
+function gpu_processors_for_cholesky()
     os = Dagger.OSProc()
     allp = collect(Dagger.get_processors(os))
     gpus = filter(_is_gpu_array_processor, allp)
     isempty(gpus) && error("No GPU Dagger processors found. Load one of CUDA, AMDGPU, oneAPI, or Metal before Dagger.")
     sort!(gpus; by=_device_sort_key)
-    length(gpus) < 4 &&
-        error("Need at least 4 GPU devices for this benchmark; found $(length(gpus)).")
-    return gpus[1:4]
+    req = _parse_positive_int_env("CHOLESKY_NUM_GPUS", 4)
+    req > 4 && error("CHOLESKY_NUM_GPUS must be ≤ 4, got $req")
+    n = min(req, length(gpus))
+    n < 1 && error("No GPU processors after CHOLESKY_NUM_GPUS=$req cap (visible=$(length(gpus))).")
+    return gpus[1:n]
 end
 
 """
-    cholesky_block_cyclic_assignment(gpu_procs::AbstractVector{<:Dagger.Processor}, n_blocks::Int)
+    four_gpu_processors() -> Vector{<:Dagger.Processor}
 
-2×2 block-cyclic processor grid (ScaLAPACK-style): block `(i,j)` → `gpu_procs[mod(i-1,2)+2*mod(j-1,2)+1]`.
+Backward-compatible alias: requires **exactly four** visible GPUs (same as
+`gpu_processors_for_cholesky()` with default env on a 4-GPU node).
+"""
+function four_gpu_processors()
+    p = gpu_processors_for_cholesky()
+    length(p) == 4 ||
+        error("four_gpu_processors() requires 4 visible GPUs; got $(length(p)). Use gpu_processors_for_cholesky() with CHOLESKY_NUM_GPUS=1..4.")
+    return p
+end
+
+"""
+    cholesky_tile_assignment(gpu_procs, n_blocks) -> Matrix
+
+Tile-to-processor map for Cholesky on a GPU `DArray`. For **4** processors uses the
+paper 2×2 block-cyclic layout; for **1** processor assigns every tile to that device;
+for **2** or **3** processors uses a simple `(i+j)` modulo stripe so all processors are used.
+"""
+function cholesky_tile_assignment(
+    gpu_procs::AbstractVector{P},
+    n_blocks::Int,
+) where {P<:Dagger.Processor}
+    np = length(gpu_procs)
+    np ≥ 1 || throw(ArgumentError("gpu_procs must be non-empty"))
+    n_blocks ≥ 1 || throw(ArgumentError("n_blocks must be ≥ 1"))
+    assignment = Matrix{P}(undef, n_blocks, n_blocks)
+    if np == 1
+        fill!(assignment, gpu_procs[1])
+    elseif np == 4
+        for j in 1:n_blocks, i in 1:n_blocks
+            idx = mod(i - 1, 2) + 2 * mod(j - 1, 2) + 1
+            assignment[i, j] = gpu_procs[idx]
+        end
+    else
+        for j in 1:n_blocks, i in 1:n_blocks
+            assignment[i, j] = gpu_procs[1 + mod(i - 1 + j - 1, np)]
+        end
+    end
+    return assignment
+end
+
+"""
+    cholesky_block_cyclic_assignment(gpu_procs, n_blocks)
+
+Alias for [`cholesky_tile_assignment`](@ref); supports 1–4 processors (paper path uses 4).
 """
 function cholesky_block_cyclic_assignment(
     gpu_procs::AbstractVector{P},
     n_blocks::Int,
 ) where {P<:Dagger.Processor}
-    length(gpu_procs) == 4 || throw(ArgumentError("need exactly 4 processors"))
-    n_blocks ≥ 1 || throw(ArgumentError("n_blocks must be ≥ 1"))
-    assignment = Matrix{P}(undef, n_blocks, n_blocks)
-    for j in 1:n_blocks, i in 1:n_blocks
-        idx = mod(i - 1, 2) + 2 * mod(j - 1, 2) + 1
-        assignment[i, j] = gpu_procs[idx]
-    end
-    return assignment
+    return cholesky_tile_assignment(gpu_procs, n_blocks)
 end
 
 # Host scalar diagonal loop is invalid on GPU arrays without allowscalar (GPUArrays).

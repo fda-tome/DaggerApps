@@ -30,6 +30,7 @@ Use **`git rev-parse HEAD`** on your checkout for the exact integration commit.
 
 ## One-line entrypoints (see AD appendix for parameters)
 
+- **Preset matrix (reduced vs paper, parameters only):** `benchmarks/AD_BENCHMARKS.md`
 - **Cholesky:** `benchmarks/scripts/gpu-cholesky.jl`, `gpu-cholesky-sweep.jl`; PBS `scripts/polaris_cholesky_bench.pbs`; AMD `scripts/mi300a_cholesky_bench.slurm`
 - **Barnes–Hut:** `benchmarks/scripts/barnes-hut.jl`
 - **Seam carving:** `benchmarks/scripts/seam-westrick-scaling.jl`, driver `benchmarks/scripts/run-seam-scalability.sh`

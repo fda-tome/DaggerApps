@@ -8,6 +8,8 @@ This app packages the full pass@k experiment under `DaggerApps/apps/pass-at-k-st
 
 The benchmarked frameworks are `dagger`, `iris`, and `legate`. Framework source snippets can be non-Julia, but orchestration/infrastructure is Julia.
 
+**Same entrypoint for reduced vs paper:** `scripts/run_full_study.sh` runs generate → evaluate → analyze. The smoke script calls it with smaller `--n-samples` and optional `PASSK_TASK` / `PASSK_OUTPUT` (see script headers). Tiering is **parameter-only** (`PASSK_*`, model, sample counts), not a separate top-level pipeline.
+
 ## Quick start
 
 From the `DaggerApps` repo root:

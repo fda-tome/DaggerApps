@@ -62,6 +62,8 @@ julia --project=apps/seam-carving benchmarks/scripts/seam-westrick-scaling.jl
 
 Tune `SEAM_THREAD_SWEEP`, `SEAM_SCENARIOS`, etc. via env only.
 
+**Orchestrators:** `benchmarks/run_smoke_all.sh` and `run_paper_all.sh` invoke this driver after `run_benchmark()` for seam (shorter default `SEAM_THREAD_SWEEP` on reduced tier; full sweep on paper). Set `OMP_NUM_THREADS=1` (and BLAS thread caps) as in `apps/seam-carving/README.md` if your site needs it—the scripts export `OMP_NUM_THREADS=1` by default for the Westrick block.
+
 ---
 
 ## 4. Game of Life stencil (`run_benchmark()`)

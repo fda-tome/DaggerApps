@@ -7,5 +7,8 @@ HypothesisTests = "09f84164-cd44-5f33-b23f-e6b0d136a0d5"
 JSON3 = "0f8b85d8-7281-11e9-16c2-39a750bddbf1"
 ProgressMeter = "92933f4c-e287-5a05-a399-4b506db050ca"
 
+[sources]
+Dagger = {url = "https://github.com/JuliaParallel/Dagger.jl", rev = "fda/sc26-ad"}
+
 [compat]
 julia = "1.10"

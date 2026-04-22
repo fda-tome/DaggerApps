@@ -60,6 +60,20 @@ fi
     || echo "[skip] seam-carving"
 ) || true
 
+# --- Seam Westrick thread sweep (subprocess driver → same seam project + seam-carving.jl) ---
+(
+  export OMP_NUM_THREADS="${OMP_NUM_THREADS:-1}"
+  export MKL_NUM_THREADS="${MKL_NUM_THREADS:-1}"
+  export OPENBLAS_NUM_THREADS="${OPENBLAS_NUM_THREADS:-1}"
+  export SEAM_THREAD_SWEEP="${SEAM_THREAD_SWEEP:-1,2,4}"
+  export BENCH_RUNS="${BENCH_RUNS:-1}"
+  export SEAM_ROWS="${SEAM_ROWS:-256}"
+  export SEAM_COLS="${SEAM_COLS:-256}"
+  export SEAM_SCENARIOS="${SEAM_SCENARIOS:-strong}"
+  julia benchmarks/scripts/seam-westrick-scaling.jl \
+    || echo "[skip] seam-westrick-scaling"
+) || true
+
 # --- Game of life ---
 (
   export LIFE_ROWS="${LIFE_ROWS:-512}"
