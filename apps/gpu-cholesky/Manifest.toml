@@ -193,8 +193,8 @@ version = "4.1.1"
 
 [[deps.Dagger]]
 deps = ["Adapt", "DataStructures", "Distributed", "DistributedNext", "FillArrays", "GPUArraysCore", "Graphs", "KernelAbstractions", "LinearAlgebra", "MacroTools", "MemPool", "NextLA", "OnlineStats", "PrecompileTools", "Preferences", "Profile", "Random", "Requires", "ScopedValues", "Serialization", "SharedArrays", "SparseArrays", "Statistics", "StatsBase", "TaskLocalValues", "TimespanLogging", "UUIDs"]
-git-tree-sha1 = "e3861ba4886a8e02bc29241764d3fb9dbd68679d"
-repo-rev = "master"
+git-tree-sha1 = "450cc53823b285bd98bed081e4155af97961b739"
+repo-rev = "fda/sc26-ad"
 repo-url = "https://github.com/JuliaParallel/Dagger.jl"
 uuid = "d58978e5-989f-55fb-8d15-ea34adc7bf54"
 version = "0.19.4"

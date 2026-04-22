@@ -163,7 +163,6 @@ function plot_runtime_comparative(runtime_df::DataFrame, out_path::String)
     save(out_path, fig)
 end
 
-"""Comparative pass@k across frameworks (Dagger, Iris, Legate). X = task, grouped bars = framework."""
 """One row per (task, framework) for bundled native reference (same for all models/samples)."""
 function native_reference_summary(df::DataFrame)::DataFrame
     if !("reference_passed" in names(df)) || all(ismissing, df.reference_passed)

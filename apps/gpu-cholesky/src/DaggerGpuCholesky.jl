@@ -129,7 +129,9 @@ end
     four_gpu_processors() -> Vector{<:Dagger.Processor}
 
 Return four distinct GPU array processors for the current OS process, sorted by device id.
-Requires ≥4 visible devices of one backend.
+Requires ≥4 visible devices of one backend. Use smaller `CHOLESKY_NS` / `CHOLESKY_K_*`
+for faster runs; the driver does not support fewer than four GPUs because the tiled
+algorithm uses a 2×2 block-cyclic layout over four processors.
 """
 function four_gpu_processors()
     os = Dagger.OSProc()

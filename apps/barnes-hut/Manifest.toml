@@ -1,8 +1,8 @@
 # This file is machine-generated - editing it directly is not advised
 
-julia_version = "1.12.1"
+julia_version = "1.12.4"
 manifest_format = "2.0"
-project_hash = "618443dd798d7a02509b5c77252118f2059d29d0"
+project_hash = "bf0b7e5f68eb97d77056feba58c53fed13b056e3"
 
 [[deps.AbstractTrees]]
 git-tree-sha1 = "2d9c9a55f9c93e8887ad391fbae72f8ef55e1177"
@@ -120,7 +120,7 @@ version = "0.19.4"
     oneAPI = "8f75cd03-7ff8-4ecb-9b8f-daf728133b1b"
 
 [[deps.DaggerBarnesHut]]
-deps = ["BenchmarkTools", "Dagger", "Distributed", "StaticArrays"]
+deps = ["BenchmarkTools", "Dagger", "Distributed", "LinearAlgebra", "Random", "StaticArrays"]
 path = "."
 uuid = "a1b2c3d4-e5f6-7890-abcd-ef1234567890"
 version = "0.0.1"
