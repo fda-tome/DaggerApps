@@ -1,4 +1,4 @@
-# GPU Cholesky benchmark (Dagger DArray, 4-GPU block-cyclic assignment).
+# GPU Cholesky benchmark (Dagger DArray Cholesky; 1–4 GPUs via tile assignment).
 #
 # Load one GPU backend **before** Dagger (see Dagger.jl docs), e.g.:
 #   julia --project=apps/gpu-cholesky -e 'using CUDA; using Dagger; include("benchmarks/scripts/gpu-cholesky.jl"); run_benchmark()'
@@ -6,6 +6,8 @@
 #   julia --project=apps/gpu-cholesky -e 'using AMDGPU; using Dagger; include("benchmarks/scripts/gpu-cholesky.jl"); run_benchmark()'
 #
 # Env:
+#   CHOLESKY_NUM_GPUS    max GPUs to use for the Dagger path (default 4, clamped to visible count).
+#                        Set to 1 for reduced / single-GPU runs (same `run_benchmark()` as paper tier).
 #   CHOLESKY_DEVICE      auto|cuda|amdgpu|oneapi|metal (default auto)
 #   CHOLESKY_K_MIN       exponent min for N=2^k (default 10 → N=1024)
 #   CHOLESKY_K_MAX       exponent max (default 18 → N=262144)
@@ -30,6 +32,8 @@
 #   CHOLESKY_ALGO        algorithm variant: rl (right-looking, original), rl_la (right-looking +
 #                        processor pinning + lookahead, default), ll (left-looking + pinning).
 #                        Comma-separated list sweeps algorithms: rl,rl_la,ll
+#   CHOLESKY_FORCE_RL_LA if 1/true: on a single GPU, keep :rl_la instead of the default remap to :rl
+#   (shell) CHOLESKY_KEEP_SYSTEM_CUDA_LD=1 — do not strip /usr/local/cuda from LD_LIBRARY_PATH in orchestrators
 
 using BenchmarkTools
 using Dates
@@ -88,6 +92,18 @@ function _parse_algo_list()::Vector{Symbol}
     end
     isempty(algos) && push!(algos, :rl_la)
     return algos
+end
+
+"""On a single GPU, Dagger's `:rl_la` (pinning + lookahead) can fault the CUDA stack; use `:rl` unless forced."""
+function _effective_algo_list_for_gpu_count(algo_list::Vector{Symbol}, n_gpu::Int)::Vector{Symbol}
+    force = strip(get(ENV, "CHOLESKY_FORCE_RL_LA", "")) in ("1", "true", "yes", "y")
+    n_gpu > 1 && return algo_list
+    force && return algo_list
+    out = Symbol[a === :rl_la ? :rl : a for a in algo_list]
+    if out != algo_list
+        @warn "Single GPU: replacing algorithm :rl_la with :rl (Dagger rl_la + pinning can illegal-access CUDA). Set CHOLESKY_FORCE_RL_LA=1 to keep :rl_la." algos_in=algo_list algos_out=out
+    end
+    return out
 end
 
 function _parse_eltype()
@@ -224,11 +240,10 @@ end
 
 Strong scaling over `N` (power-of-two grid by default):
 
-- **Dagger:** `cholesky` on a 4-GPU block-cyclic GPU `DArray` (same SPD matrix as the app README).
+- **Dagger:** `cholesky` on a GPU-backed `DArray` (same SPD matrix as the app README). Uses **1–4** GPUs (`CHOLESKY_NUM_GPUS`, default 4); tile assignment generalizes the paper 2×2 block-cyclic layout.
 - **Vendor baseline:** by default, also times **single-GPU** `LinearAlgebra.cholesky!` (vendor **potrf**
   for CUDA / ROCm / oneAPI / Metal) on a dense GPU matrix with the **same** entries, after `copyto!`
   from a template each trial (`CHOLESKY_VENDOR=0` to disable).
-
 Results CSV columns include `dagger_*` and `vendor_*` timings; `vendor_*` are `missing` when vendor timing is off.
 
 With `CHOLESKY_PERF_LOG=1`, also appends one NDJSON record per `(N, block_size, algorithm)` to `perf_dagger.jsonl`.
@@ -236,9 +251,22 @@ With `CHOLESKY_PERF_LOG=1`, also appends one NDJSON record per `(N, block_size, 
 Use `CHOLESKY_BLOCKS=a,b,...` to sweep tile sizes in one run (vendor baseline is timed **once per N**).
 Use `CHOLESKY_INPLACE=1` for `cholesky!` + `copyto!` from a template each repetition (~2× `DArray` memory).
 Use `CHOLESKY_ALGO=rl,rl_la,ll` to sweep algorithm variants (default `rl_la`).
+
+On **one** GPU (`CHOLESKY_NUM_GPUS=1`), `:rl_la` is automatically mapped to `:rl` unless
+`CHOLESKY_FORCE_RL_LA=1` (the rl_la path has triggered CUDA illegal memory access with a single device).
 """
+function _warn_ld_library_path_cuda()
+    lp = get(ENV, "LD_LIBRARY_PATH", "")
+    isempty(lp) && return nothing
+    if occursin("/usr/local/cuda", lp)
+        @warn "LD_LIBRARY_PATH contains /usr/local/cuda — mixing system CUDA with CUDA.jl often causes illegal memory access or heap corruption during GPU Cholesky. Remove those entries for this Julia process (see benchmarks/run_smoke_all.sh) or set CHOLESKY_KEEP_SYSTEM_CUDA_LD=1 only if you intend to use the system stack." maxlog = 1
+    end
+    return nothing
+end
+
 function run_benchmark()
     DG.resolve_device_strict()
+    _warn_ld_library_path_cuda()
     outdir = _ensure_results_dir!()
     csv_path = joinpath(outdir, "cholesky_times.csv")
 
@@ -261,9 +289,10 @@ function run_benchmark()
         ns = [2^k for k in k_min:k_max]
     end
 
-    gpu_procs = DG.four_gpu_processors()
-    device = DG.device_from_loaded()
     run_vendor = _parse_bool01("CHOLESKY_VENDOR", true)
+    gpu_procs = DG.gpu_processors_for_cholesky()
+    algo_list = _effective_algo_list_for_gpu_count(algo_list, length(gpu_procs))
+    device = DG.device_from_loaded()
     vendor_dev = _parse_int("CHOLESKY_VENDOR_DEVICE", 0)
 
     perf_log = _parse_bool01("CHOLESKY_PERF_LOG", false)
@@ -292,7 +321,7 @@ function run_benchmark()
     ]
     rows = Vector{Vector{Any}}()
 
-    @info "GPU Cholesky benchmark" outdir device block_sizes algo_list n_trials ns_begin=first(ns) ns_end=last(ns) run_vendor vendor_dev use_inplace perf_log perf_scope
+    @info "GPU Cholesky benchmark" outdir device n_gpu_procs=length(gpu_procs) block_sizes algo_list n_trials ns_begin=first(ns) ns_end=last(ns) run_vendor vendor_dev use_inplace perf_log perf_scope
 
     if perf_log
         Dagger.enable_logging!(;
@@ -354,7 +383,7 @@ function run_benchmark()
             for bs in block_sizes
                 rem(N, bs) == 0 || continue
                 n_blocks = N ÷ bs
-                asg = DG.cholesky_block_cyclic_assignment(gpu_procs, n_blocks)
+                asg = DG.cholesky_tile_assignment(gpu_procs, n_blocks)
 
                 for algo in algo_list
                 @info "  dagger: N=$N bs=$bs algo=$algo"; flush(stderr)

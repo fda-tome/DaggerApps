@@ -17,11 +17,13 @@ for d in CUDA.devices()
 end
 
 # ── Precompile both algorithms on a tiny 128×128 DArray (2×2 grid) ──
+# Uses the same processor selection as gpu-cholesky.jl (`CHOLESKY_NUM_GPUS`, default 4).
 println("\n=== Precompiling (128×128, 2×2) ... ==="); flush(stdout)
-_procs = _DG.four_gpu_processors()
-_asg = _DG.cholesky_block_cyclic_assignment(_procs, 2)
+_procs = _DG.gpu_processors_for_cholesky()
+_asg = _DG.cholesky_tile_assignment(_procs, 2)
 _DA = _DG.spd_ones_darray(Float32, 128, 64, _asg)
-for algo in (:rl_la, :ll)
+_precompile_algos = Main._effective_algo_list_for_gpu_count([:rl_la, :ll], length(_procs))
+for algo in _precompile_algos
     Dagger.with(Dagger.CHOLESKY_ALGORITHM => algo) do
         Dagger.darray_cholesky!(copy(_DA))
     end

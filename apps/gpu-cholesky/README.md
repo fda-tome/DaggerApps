@@ -1,16 +1,16 @@
 # Dagger GPU Cholesky benchmark app
 
-Blocked `LinearAlgebra.cholesky` on a GPU-backed `Dagger.DArray` with **four devices** and a **2×2 block-cyclic** `assignment` matrix of Dagger `Processor`s (ScaLAPACK-style 2D decomposition). The SPD matrix is **`ones`** plus a diagonal boost applied only on diagonal tiles (no host `collect` for setup).
+Blocked `LinearAlgebra.cholesky` on a GPU-backed `Dagger.DArray` with **one to four devices** (`CHOLESKY_NUM_GPUS`) and a tile `assignment` matrix of Dagger `Processor`s (2×2 block-cyclic when four GPUs are used; degenerate assignment on a single GPU — same `run_benchmark()` / `darray_cholesky!` path). The SPD matrix is **`ones`** plus a diagonal boost applied only on diagonal tiles (no host `collect` for setup).
 
 ## Requirements
 
 - **Julia** ≥ 1.10
-- **Four GPUs** of one vendor (CUDA, AMDGPU, oneAPI, or Metal)
+- **At least one GPU** of one vendor (CUDA, AMDGPU, oneAPI, or Metal); up to **four** for the paper-style layout
 - Load the GPU package **before** `Dagger` in the same session ([Dagger.jl docs](https://juliaparallel.org/Dagger.jl/dev/))
 
-## Dagger.jl from `master`
+## Dagger.jl pin (`fda/sc26-ad`)
 
-The environment pins **Dagger** to [JuliaParallel/Dagger.jl](https://github.com/JuliaParallel/Dagger.jl) `master` via `Project.toml` `[sources]` and `Manifest.toml`. To refresh to the latest commit:
+The environment pins **Dagger** to [JuliaParallel/Dagger.jl](https://github.com/JuliaParallel/Dagger.jl) branch **`fda/sc26-ad`** via `Project.toml` `[sources]` and `Manifest.toml`. To refresh after upstream moves the branch tip:
 
 ```julia
 using Pkg
@@ -20,10 +20,14 @@ Pkg.update("Dagger")
 Or reinstall:
 
 ```julia
-Pkg.add(Pkg.PackageSpec(url="https://github.com/JuliaParallel/Dagger.jl", rev="master"))
+Pkg.add(Pkg.PackageSpec(url="https://github.com/JuliaParallel/Dagger.jl", rev="fda/sc26-ad"))
 ```
 
 If `Pkg.instantiate()` reports a tree hash mismatch, run `Pkg.resolve()` or update the git entry as above.
+
+## CUDA loader hygiene
+
+If `LD_LIBRARY_PATH` includes **`/usr/local/cuda`** while you use **CUDA.jl**, the dynamic linker can mix the system driver stack with Julia’s CUDA artifacts and you may see **illegal memory access** or **heap corruption** during `darray_cholesky!`. Prefer a clean `LD_LIBRARY_PATH` for the Julia process, or run via `benchmarks/run_smoke_all.sh` / `run_paper_all.sh` (they drop `/usr/local/cuda` entries unless you set **`CHOLESKY_KEEP_SYSTEM_CUDA_LD=1`**).
 
 ## Run the benchmark
 
@@ -40,7 +44,7 @@ julia --project=apps/gpu-cholesky -e '
 
 Default sweep: `N = 2^k` for `k = 10:18` (up to **262144×262144**). Override with env vars (see script header in `benchmarks/scripts/gpu-cholesky.jl`).
 
-**Vendor comparison:** the benchmark script also times **single-GPU** `LinearAlgebra.cholesky!` (vendor **potrf**: cuSOLVER, rocSOLVER, Intel oneMKL, or Metal as appropriate) on a dense GPU matrix with the **same** SPD values as the Dagger `DArray` (`ones` plus diagonal boost). That timing includes restoring the matrix with `copyto!` each trial so every run is a valid factorization. Set `CHOLESKY_VENDOR=0` to skip. Use `CHOLESKY_VENDOR_DEVICE` (default `0`, 0-based) to pick the device for the dense baseline. The Dagger path still uses **four** GPUs; the vendor path is a **one-GPU** reference.
+**Vendor comparison:** the benchmark script can also time **single-GPU** `LinearAlgebra.cholesky!` (vendor **potrf**: cuSOLVER, rocSOLVER, Intel oneMKL, or Metal as appropriate) on a dense GPU matrix with the **same** SPD values as the Dagger `DArray` (`ones` plus diagonal boost). That timing includes restoring the matrix with `copyto!` each trial so every run is a valid factorization. Set `CHOLESKY_VENDOR=0` to skip. Use `CHOLESKY_VENDOR_DEVICE` (default `0`, 0-based) to pick the device for the dense baseline. The **Dagger** path uses **`CHOLESKY_NUM_GPUS`** (default 4); the vendor path is an optional **one-GPU** reference column.
 
 **Dagger performance metrics:** set `CHOLESKY_PERF_LOG=1` to turn on Dagger’s TimespanLogging (`enable_logging!` with `metrics=true` and task function names). Each `(N, block_size)` appends one **NDJSON** line to `perf_dagger.jsonl` under the same timestamped results folder as `cholesky_times.csv` (override with `CHOLESKY_PERF_LOG_PATH`). Use `CHOLESKY_PERF_SCOPE=timed` (default) to record logs only during the timed Dagger trials (after warmup), or `full` to include matrix construction and warmup as well. Summaries aggregate paired `:core` span durations by category (e.g. `:compute`, `:move`) and list frequent task function names. Logging adds overhead; use for diagnosis, not bare-metal throughput runs.
 
@@ -78,7 +82,7 @@ Example sweep: `CHOLESKY_ALGO=rl,rl_la,ll`. The CSV and NDJSON perf log include 
 ## AMD MI300 / ROCm batch jobs (SLURM)
 
 - Load your site’s **ROCm** module (and Julia) on the **login or batch node** as required.
-- This benchmark needs **four visible GPU devices** on one node (`HIP_VISIBLE_DEVICES` / `ROCR_VISIBLE_DEVICES` if you must pin devices). See `scripts/amd_rocm_env.sh` for optional exports.
+- Pin visible devices with `HIP_VISIBLE_DEVICES` / `ROCR_VISIBLE_DEVICES` as needed; set `CHOLESKY_NUM_GPUS` to match how many devices the Dagger path should use. See `scripts/amd_rocm_env.sh` for optional exports.
 - Example batch driver (same sweep as `scripts/polaris_cholesky_bench.pbs`, but `using AMDGPU` instead of `using CUDA`):
 
   ```bash
