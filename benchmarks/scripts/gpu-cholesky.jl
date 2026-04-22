@@ -256,6 +256,7 @@ On **one** GPU (`CHOLESKY_NUM_GPUS=1`), `:rl_la` is automatically mapped to `:rl
 `CHOLESKY_FORCE_RL_LA=1` (the rl_la path has triggered CUDA illegal memory access with a single device).
 """
 function _warn_ld_library_path_cuda()
+    DG.device_from_loaded() === :cuda || return nothing
     lp = get(ENV, "LD_LIBRARY_PATH", "")
     isempty(lp) && return nothing
     if occursin("/usr/local/cuda", lp)
