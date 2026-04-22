@@ -92,8 +92,9 @@ unset PASSK_SKIP_GENERATE PASSK_GENERATED PASSK_API_BASE PASSK_API_KEY || true
 # --- pass@k ---
 (
   cd apps/pass-at-k-study
-  bash scripts/run_full_study.sh "${PASSK_MODEL:-gpt-4o-mini}" "${PASSK_N_SAMPLES:-5}" \
-    || echo "[skip] pass-at-k-study (needs API keys / model)"
+  if ! bash scripts/run_full_study.sh "${PASSK_MODEL:-gpt-4o-mini}" "${PASSK_N_SAMPLES:-5}"; then
+    echo "[skip] pass-at-k-study (needs API keys / model)"
+  fi
 ) || true
 
 echo "=== run_paper_all.sh finished ==="
