@@ -7,5 +7,10 @@ HypothesisTests = "09f84164-cd44-5f33-b23f-e6b0d136a0d5"
 JSON3 = "0f8b85d8-7281-11e9-16c2-39a750bddbf1"
 ProgressMeter = "92933f4c-e287-5a05-a399-4b506db050ca"
 
+[sources]
+# SC26 AD: branch fda/sc26-ad @ commit d9bf3ca4 (v0.19.4+33). Unified Dagger pin
+# across every reproducible case study so a single Dagger.jl checkout serves all.
+Dagger = {url = "https://github.com/JuliaParallel/Dagger.jl", rev = "d9bf3ca494bdbca8e0e7e52501010da20f481bd9"}
+
 [compat]
 julia = "1.10"

@@ -6,3 +6,12 @@ version = "0.0.1"
 BenchmarkTools = "6e4b80f9-dd63-53aa-95a3-0cdb28fa8baf"
 Dagger = "d58978e5-989f-55fb-8d15-ea34adc7bf54"
 Plots = "91a5bcdd-55d7-5caf-9e0b-520d859cae80"
+
+# SC26 AD note: stencil case studies (game-of-life, heat-propagation) pin to
+# registered Dagger v0.19.3 (git-tree-sha1 bd477dfc8eeeed574dbee78d10c92882e08073e7).
+# v0.19.4+ changed the DTask fetch semantics in a way that breaks these stencil
+# kernels (ConcurrencyViolationError "Cannot `fetch` an unlaunched `DTask`");
+# upgrading requires kernel rewrites that are out of scope for the AD freeze.
+
+[compat]
+Dagger = "=0.19.3"
