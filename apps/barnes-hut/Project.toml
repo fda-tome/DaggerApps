@@ -9,4 +9,6 @@ StaticArrays = "90137ffa-7385-5640-81b9-e52037218182"
 BenchmarkTools = "6e4b80f9-dd63-53aa-95a3-0cdb28fa8baf"
 
 [sources]
-Dagger = {path = "../../../Dagger.jl"}
+# SC26 AD: branch fda/sc26-ad @ commit d9bf3ca4 (v0.19.4+33). Using git-url
+# resolution so reviewers no longer need a sibling Dagger.jl clone.
+Dagger = {url = "https://github.com/JuliaParallel/Dagger.jl", rev = "d9bf3ca494bdbca8e0e7e52501010da20f481bd9"}

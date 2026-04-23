@@ -1,6 +1,6 @@
 # This file is machine-generated - editing it directly is not advised
 
-julia_version = "1.12.1"
+julia_version = "1.12.4"
 manifest_format = "2.0"
 project_hash = "618443dd798d7a02509b5c77252118f2059d29d0"
 
@@ -86,7 +86,9 @@ version = "0.1.1"
 
 [[deps.Dagger]]
 deps = ["Adapt", "DataStructures", "Distributed", "DistributedNext", "FillArrays", "GPUArraysCore", "Graphs", "KernelAbstractions", "LinearAlgebra", "MacroTools", "MemPool", "NextLA", "OnlineStats", "PrecompileTools", "Preferences", "Profile", "Random", "Requires", "ScopedValues", "Serialization", "SharedArrays", "SparseArrays", "Statistics", "StatsBase", "TaskLocalValues", "TimespanLogging", "UUIDs"]
-path = "../../../Dagger.jl"
+git-tree-sha1 = "450cc53823b285bd98bed081e4155af97961b739"
+repo-rev = "d9bf3ca494bdbca8e0e7e52501010da20f481bd9"
+repo-url = "https://github.com/JuliaParallel/Dagger.jl"
 uuid = "d58978e5-989f-55fb-8d15-ea34adc7bf54"
 version = "0.19.4"
 

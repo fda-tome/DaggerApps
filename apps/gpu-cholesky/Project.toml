@@ -15,7 +15,9 @@ Printf = "de0858da-6303-5e67-8744-51eddeeeb8d7"
 Statistics = "10745b16-79ce-11e8-11f9-7d13ad32a3b2"
 
 [sources]
-Dagger = {url = "https://github.com/JuliaParallel/Dagger.jl", rev = "master"}
+# SC26 AD: branch fda/sc26-ad @ commit d9bf3ca4 (v0.19.4+33). Reviewer pinning
+# convention requires both the branch name and the 40-char commit SHA.
+Dagger = {url = "https://github.com/JuliaParallel/Dagger.jl", rev = "d9bf3ca494bdbca8e0e7e52501010da20f481bd9"}
 
 [compat]
 julia = "1.10"
