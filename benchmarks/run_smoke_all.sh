@@ -32,7 +32,7 @@ if command -v julia >/dev/null 2>&1; then
     export CHOLESKY_WARMUP="${CHOLESKY_WARMUP:-0}"
     export CHOLESKY_VENDOR="${CHOLESKY_VENDOR:-0}"
     julia --project=apps/gpu-cholesky -e 'using CUDA; using Dagger; include("benchmarks/scripts/gpu-cholesky.jl"); run_benchmark()' \
-      || echo "[skip] gpu-cholesky (CUDA not available or run failed)"
+      || echo "[skip] gpu-cholesky (paper hardware pin is 4 GPUs of one backend per node; benchmark cannot run on <4 GPUs)"
   ) || true
 else
   echo "[skip] julia not in PATH"

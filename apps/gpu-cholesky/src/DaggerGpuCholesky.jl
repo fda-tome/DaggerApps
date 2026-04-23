@@ -129,7 +129,10 @@ end
     four_gpu_processors() -> Vector{<:Dagger.Processor}
 
 Return four distinct GPU array processors for the current OS process, sorted by device id.
-Requires ≥4 visible devices of one backend.
+Requires ≥4 visible devices of one backend. This is a faithful encoding of the paper's
+4-GPU-per-node hardware pin; no 1-GPU fallback is provided because the block-cyclic
+(ScaLAPACK-style) assignment in this benchmark is semantically tied to 4 distinct devices.
+AE reviewers on <4 GPU hosts should skip this benchmark — see the AD's Known Limitations.
 """
 function four_gpu_processors()
     os = Dagger.OSProc()
@@ -138,7 +141,8 @@ function four_gpu_processors()
     isempty(gpus) && error("No GPU Dagger processors found. Load one of CUDA, AMDGPU, oneAPI, or Metal before Dagger.")
     sort!(gpus; by=_device_sort_key)
     length(gpus) < 4 &&
-        error("Need at least 4 GPU devices for this benchmark; found $(length(gpus)).")
+        error("Need at least 4 GPU devices for this benchmark; found $(length(gpus)). " *
+              "Paper hardware pin is 4 GPUs per node; reviewers without 4 GPUs should skip this benchmark.")
     return gpus[1:4]
 end
 
@@ -451,9 +455,13 @@ function unsafe_free_darray!(A::Dagger.DArray)
 end
 
 function _purge_gpu_memory!()
-    # Drain Dagger's scheduler chunk cache (holds GPU arrays across runs)
-    n = Dagger.clear_chunk_cache!()
-    n > 0 && @info "purge: cleared $n CHUNK_CACHE entries"
+    # Drain Dagger's scheduler chunk cache (holds GPU arrays across runs).
+    # `clear_chunk_cache!` was introduced after v0.19.4+33 (our paper pin); guard
+    # for older Dagger commits so the benchmark still runs with just GC.
+    if isdefined(Dagger, :clear_chunk_cache!)
+        n = Dagger.clear_chunk_cache!()
+        n > 0 && @info "purge: cleared $n CHUNK_CACHE entries"
+    end
 
     GC.gc(true)
     GC.gc(true)

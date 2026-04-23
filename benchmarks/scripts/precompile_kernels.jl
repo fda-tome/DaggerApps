@@ -26,7 +26,7 @@ for a in (:rl_la, :ll)
     end
     DG.unsafe_free_darray!(DA)
 end
-Dagger.clear_chunk_cache!()
+isdefined(Dagger, :clear_chunk_cache!) && Dagger.clear_chunk_cache!()
 GC.gc(true); GC.gc(true)
 
 if _BE == "cuda"
