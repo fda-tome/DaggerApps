@@ -4,15 +4,18 @@ This branch merges the per–case-study pins from the SC26 Artifact Description
 (`paper/sc26_ad_submission.tex` in the paper repo) into a **single** line of
 development for reviewers.
 
-## Integration tip (current `HEAD`)
+## Integration tip
 
-After pushing, cite this branch and run:
+The authoritative tip SHA is cited in the AD documents
+(`paper/sc26_ad_submission.tex`, `paper/sc26_ad_appendix.md`,
+`paper/sc26_artifact_description.md`) — reviewers should `git checkout`
+that SHA rather than a branch head. Clone the branch with:
 
 ```bash
 git clone --branch SC26_AD_AE https://github.com/fda-tome/DaggerApps.git
 ```
 
-Use **`git rev-parse HEAD`** on your checkout for the exact integration commit.
+then `git checkout <sha-from-AD>` before `Pkg.instantiate()`.
 
 ## Source pins merged (short SHA → full SHA)
 
