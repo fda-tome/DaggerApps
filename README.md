@@ -2,6 +2,8 @@
 
 A collection of Dagger.jl application folders (apps), plus optional benchmark scaffolding. Each app is intended to be a self‑contained Julia project; benchmarks are opt‑in and live under `benchmarks/`.
 
+**Exemplar / SC26 reviewer path:** see **[EXEMPLAR_QUICKSTART.md](EXEMPLAR_QUICKSTART.md)** (clone → verify SHA → `Pkg.instantiate` → `benchmarks/run_smoke_all.sh` → checkable outputs). License: [LICENSE](LICENSE) (MIT).
+
 ## SC26 AD/AE integration branch
 
 Branch **`SC26_AD_AE`** merges the paper-pinned commits for Cholesky (NVIDIA/Intel
@@ -16,7 +18,7 @@ DaggerApps/
 ├── apps/                      # Dagger applications (one folder per app)
 │   ├── barnes-hut/            # Barnes–Hut N-body simulation (distributed, Morton Z-curve)
 │   ├── game-of-life/          # Conway's Game of Life (stencil-based)
-│   ├── gpu-cholesky/          # Multi-GPU DArray Cholesky benchmark (Dagger master)
+│   ├── gpu-cholesky/          # Multi-GPU DArray Cholesky (Dagger.jl pin in Project.toml)
 │   ├── heat-propagation/      # 2D heat diffusion + animation
 │   ├── pass-at-k-study/       # LLM pass@k comparative benchmark app
 │   └── seam-carving/          # Content-aware image resizing (seam carving)

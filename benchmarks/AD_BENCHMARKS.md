@@ -1,6 +1,6 @@
 # AD benchmark presets (reduced vs paper)
 
-All case studies use **one canonical Julia/bash entrypoint** per workload. The **paper** tier matches the Artifact Description defaults; the **reduced / AE** tier changes **only environment variables and numeric flags** (sizes, trials, workers, samples). The **Dagger.jl** revision is pinned to branch **`fda/sc26-ad`** everywhere via each app’s `Project.toml` `[sources]` and `Manifest.toml`.
+All case studies use **one canonical Julia/bash entrypoint** per workload. The **paper** tier matches the Artifact Description defaults; the **reduced / AE** tier changes **only environment variables and numeric flags** (sizes, trials, workers, samples). **Dagger.jl** is **not** a single tag for every app: Cholesky, Barnes–Hut, seam, pass@$k$, and the benchmark helper projects use `Project.toml` **`[sources]`** with `rev =` the **full commit SHA** (same tree as the `fda/sc26-ad` line of development, e.g. `d9bf3ca…`); the two **stencil** apps pin **registered** `Dagger = "0.19.3"` in **`[compat]`** (see the SC26 Artifact Description PDF / its LaTeX source and each `Project.toml` / `Manifest.toml`). After pulling, `Pkg.instantiate()`.
 
 Run commands from the **`DaggerApps` repository root** (the directory that contains `apps/` and `benchmarks/`).
 
@@ -126,11 +126,11 @@ With `PASSK_SKIP_GENERATE=1` and `PASSK_GENERATED=…`, phases 2–3 reuse the s
 
 ## Dagger pin
 
-Every environment under `apps/*` that depends on Dagger and the `benchmarks/scripts` helper project lists:
+Most case-study `apps/*` (Cholesky, Barnes–Hut, seam, pass@$k$) use a **git SHA** in `[sources]`, e.g.:
 
 ```toml
 [sources]
-Dagger = {url = "https://github.com/JuliaParallel/Dagger.jl", rev = "fda/sc26-ad"}
+Dagger = {url = "https://github.com/JuliaParallel/Dagger.jl", rev = "d9bf3ca494bdbca8e0e7e52501010da20f481bd9"}
 ```
 
-Refresh with `Pkg.resolve()` in that environment after pulling.
+**Stencil** apps (`game-of-life`, `heat-propagation`) use **`[compat] Dagger = "0.19.3"`** (registry) instead. Experimental `apps/multi-gpu-*` may still use `rev = "fda/sc26-ad"`; check that project’s `Project.toml`. Run `Pkg.instantiate()` (and `Pkg.resolve()` if you edit dependencies) after pulling.
