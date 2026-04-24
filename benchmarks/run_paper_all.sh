@@ -1,6 +1,10 @@
 #!/usr/bin/env bash
 # Paper-tier presets: exports **parameters only**, then runs the same canonical
-# invocations as `benchmarks/AD_BENCHMARKS.md`. Expects resources matching the AD (e.g. 4 GPUs for Cholesky).
+# invocations as `benchmarks/AD_BENCHMARKS.md` and `benchmarks/REVIEWER_PATHS.md`.
+# Expects resources from the paper / AD: e.g. 4 GPUs for Cholesky (override CHOLESKY_NUM_GPUS),
+# large memory for seam, pass@k API or Ollama, etc.
+#
+# Reduced (AE-friendly) preset for the same code paths:  benchmarks/run_smoke_all.sh
 
 set -euo pipefail
 ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
@@ -18,20 +22,43 @@ _cholesky_clean_ld() {
   echo "$LD_LIBRARY_PATH" | tr ':' '\n' | grep -vE '^/usr/local/cuda(/|$)' | paste -sd: -
 }
 
-echo "=== DaggerApps paper / full tier (parameter env only) ==="
+echo "=== DaggerApps paper / full tier (all apps) ==="
+echo "Docs: benchmarks/REVIEWER_PATHS.md, benchmarks/AD_BENCHMARKS.md"
+echo "Reduced: bash benchmarks/run_smoke_all.sh"
+echo
 
 # Clear pass@k smoke-only skip/generate overrides (keep PASSK_TASK / PASSK_OUTPUT if set for a scoped paper run)
 unset PASSK_SKIP_GENERATE PASSK_GENERATED PASSK_API_BASE PASSK_API_KEY || true
 
-# --- Cholesky ---
+# --- Cholesky (NVIDIA/AMD/Intel/Apple: load first available GPU stack; default 4 GPUs) ---
 (
   export LD_LIBRARY_PATH="$(_cholesky_clean_ld)"
   export CHOLESKY_NUM_GPUS="${CHOLESKY_NUM_GPUS:-4}"
   export CHOLESKY_TRIALS="${CHOLESKY_TRIALS:-5}"
   export CHOLESKY_WARMUP="${CHOLESKY_WARMUP:-1}"
   export CHOLESKY_VENDOR="${CHOLESKY_VENDOR:-1}"
-  julia --project=apps/gpu-cholesky -e 'using CUDA; using Dagger; include("benchmarks/scripts/gpu-cholesky.jl"); run_benchmark()' \
-    || echo "[skip] gpu-cholesky (needs CUDA + GPUs matching CHOLESKY_NUM_GPUS)"
+  julia --project=apps/gpu-cholesky -e '
+    try
+      using CUDA
+    catch
+      try
+        using AMDGPU
+      catch
+        try
+          using oneAPI
+        catch
+          try
+            using Metal
+          catch
+            error("gpu-cholesky: need CUDA, AMDGPU, oneAPI, or Metal before Dagger")
+          end
+        end
+      end
+    end
+    using Dagger
+    include(joinpath("benchmarks", "scripts", "gpu-cholesky.jl"))
+    run_benchmark()
+  ' || echo "[skip] gpu-cholesky (GPU stack or device count; see AD_BENCHMARKS.md)"
 ) || true
 
 # --- Barnes (override BARNES_NPROCS to match your allocation) ---

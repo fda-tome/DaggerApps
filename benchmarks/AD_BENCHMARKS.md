@@ -1,6 +1,13 @@
 # AD benchmark presets (reduced vs paper)
 
+**Reviewer one-pager (two shell commands, per-app table, pass/fail):** see **`REVIEWER_PATHS.md`** in this directory.  
+**Exemplar clone + instantiate:** **`EXEMPLAR_QUICKSTART.md`** in the repository root.
+
+---
+
 All case studies use **one canonical Julia/bash entrypoint** per workload. The **paper** tier matches the Artifact Description defaults; the **reduced / AE** tier changes **only environment variables and numeric flags** (sizes, trials, workers, samples). **Dagger.jl** is **not** a single tag for every app: Cholesky, Barnes–Hut, seam, pass@$k$, and the benchmark helper projects use `Project.toml` **`[sources]`** with `rev =` the **full commit SHA** (same tree as the `fda/sc26-ad` line of development, e.g. `d9bf3ca…`); the two **stencil** apps pin **registered** `Dagger = "0.19.3"` in **`[compat]`** (see the SC26 Artifact Description PDF / its LaTeX source and each `Project.toml` / `Manifest.toml`). After pulling, `Pkg.instantiate()`.
+
+**All apps, orchestrated (recommended):** from the repo root, `bash benchmarks/run_smoke_all.sh` (reduced) and `bash benchmarks/run_paper_all.sh` (full) invoke the same canonical `include("benchmarks/scripts/…")` and pass@k scripts described below.
 
 Run commands from the **`DaggerApps` repository root** (the directory that contains `apps/` and `benchmarks/`).
 

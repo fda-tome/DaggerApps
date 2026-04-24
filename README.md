@@ -2,7 +2,9 @@
 
 A collection of Dagger.jl application folders (apps), plus optional benchmark scaffolding. Each app is intended to be a self‑contained Julia project; benchmarks are opt‑in and live under `benchmarks/`.
 
-**Exemplar / SC26 reviewer path:** see **[EXEMPLAR_QUICKSTART.md](EXEMPLAR_QUICKSTART.md)** (clone → verify SHA → `Pkg.instantiate` → `benchmarks/run_smoke_all.sh` → checkable outputs). License: [LICENSE](LICENSE) (MIT).
+**Reviewers (reduced vs full, all case studies):** **[`benchmarks/REVIEWER_PATHS.md`](benchmarks/REVIEWER_PATHS.md)** — two commands: `bash benchmarks/run_smoke_all.sh` (reduced) and `bash benchmarks/run_paper_all.sh` (paper tier). Details: [`benchmarks/AD_BENCHMARKS.md`](benchmarks/AD_BENCHMARKS.md).
+
+**Exemplar / SC26 clone path:** **[EXEMPLAR_QUICKSTART.md](EXEMPLAR_QUICKSTART.md)** (verify SHA → `Pkg.instantiate` → smoke → optional full). License: [LICENSE](LICENSE) (MIT).
 
 ## SC26 AD/AE integration branch
 

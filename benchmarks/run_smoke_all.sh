@@ -1,6 +1,10 @@
 #!/usr/bin/env bash
 # Reduced-tier presets: exports **parameters only**, then runs the same canonical
-# invocations as `benchmarks/AD_BENCHMARKS.md` (best-effort; skip steps that need unavailable hardware).
+# invocations as `benchmarks/AD_BENCHMARKS.md` and `benchmarks/REVIEWER_PATHS.md`
+# (best-effort: steps that need unavailable hardware print [skip] and the script still exits 0).
+#
+# Covers every SC26 case-study app: Cholesky, Barnes–Hut, seam (+ Westrick driver),
+# game-of-life, heat-propagation, pass@k. See AD_BENCHMARKS.md for copy-paste one-liners.
 
 set -euo pipefail
 ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
@@ -20,9 +24,45 @@ _cholesky_clean_ld() {
   echo "$LD_LIBRARY_PATH" | tr ':' '\n' | grep -vE '^/usr/local/cuda(/|$)' | paste -sd: -
 }
 
-echo "=== DaggerApps smoke / reduced tier (parameter env only) ==="
+# Probe whether a vendor GPU package can be loaded (CUDA > AMDGPU > oneAPI > Metal).
+_cholesky_run_smoke() {
+  julia --project=apps/gpu-cholesky -e '
+    skip = get(ENV, "SKIP_CHOLESKY", "")
+    if skip == "1" || skip == "yes" || skip == "true"
+      @info "SKIP_CHOLESKY set; skipping gpu-cholesky smoke"
+      exit(2)
+    end
+    try
+      using CUDA
+    catch
+      try
+        using AMDGPU
+      catch
+        try
+          using oneAPI
+        catch
+          try
+            using Metal
+          catch
+            @info "No GPU backend (CUDA, AMDGPU, oneAPI, Metal); skipping gpu-cholesky reduced smoke. Install one GPU stack or set SKIP_CHOLESKY=1."
+            exit(2)
+          end
+        end
+      end
+    end
+    using Dagger
+    include(joinpath("benchmarks", "scripts", "gpu-cholesky.jl"))
+    run_benchmark()
+  ' || return $?
+  return 0
+}
 
-# --- Cholesky (Dagger path; 1 GPU if visible) ---
+echo "=== DaggerApps smoke / reduced tier (all apps) ==="
+echo "Docs: benchmarks/REVIEWER_PATHS.md, benchmarks/AD_BENCHMARKS.md, EXEMPLAR_QUICKSTART.md (repo root)"
+echo "Full tier:  bash benchmarks/run_paper_all.sh"
+echo
+
+# --- Cholesky (1 GPU, small N; same driver as paper) ---
 if command -v julia >/dev/null 2>&1; then
   (
     export LD_LIBRARY_PATH="$(_cholesky_clean_ld)"
@@ -31,8 +71,16 @@ if command -v julia >/dev/null 2>&1; then
     export CHOLESKY_TRIALS="${CHOLESKY_TRIALS:-1}"
     export CHOLESKY_WARMUP="${CHOLESKY_WARMUP:-0}"
     export CHOLESKY_VENDOR="${CHOLESKY_VENDOR:-0}"
-    julia --project=apps/gpu-cholesky -e 'using CUDA; using Dagger; include("benchmarks/scripts/gpu-cholesky.jl"); run_benchmark()' \
-      || echo "[skip] gpu-cholesky (paper hardware pin is 4 GPUs of one backend per node; benchmark cannot run on <4 GPUs)"
+    if _cholesky_run_smoke; then
+      : ok
+    else
+      s=$?
+      if [ "$s" = 2 ]; then
+        echo "[skip] gpu-cholesky (no GPU backend or SKIP_CHOLESKY=1)"
+      else
+        echo "[skip] gpu-cholesky (error during run; see messages above)"
+      fi
+    fi
   ) || true
 else
   echo "[skip] julia not in PATH"
