@@ -11,7 +11,7 @@
    git checkout sc26-ad-freeze
    git rev-parse HEAD
    ```
-   Expect: `3b0ab4da80e46be177ed39a789ee391020e16e68` (tag `sc26-ad-freeze` points here).
+   Expect: `a6a64edefd47617907df1fa7998008f6cdd83bdf` (tag `sc26-ad-freeze` should match after push).
 
 2. **Julia** — 1.12.4+ recommended (`juliaup add 1.12.4 && juliaup default 1.12.4`).
 
