@@ -46,13 +46,13 @@ Default sweep: `N = 2^k` for `k = 10:18` (up to **262144×262144**). Override wi
 
 **Tuning tile size:** Cholesky on a `DArray` depends strongly on **`CHOLESKY_BLOCK`** (must divide `N`). Set **`CHOLESKY_BLOCKS=256,512,1024`** (comma-separated) to sweep several tile sizes in one run; the CSV gets one row per `(N, block_size)`, while the **vendor** dense baseline is still timed **once per `N`** (it does not depend on the Dagger tile). Try powers of two near a kernel-friendly size for your GPU.
 
-**Algorithm variants:** **`CHOLESKY_ALGO=rl_la`** (default) selects the Cholesky algorithm. Set a comma-separated list to sweep variants in a single run:
+**Algorithm variants:** **`CHOLESKY_ALGO=ll`** (default) selects the Cholesky algorithm for the SC26 paper / AD (left-looking blocked; matches the paper narrative). Set a comma-separated list to sweep variants in a single run:
 
 | Value   | Description |
 |---------|-------------|
 | `rl`    | Right-looking (original Dagger, no processor pinning or lookahead). Useful as a baseline. |
-| `rl_la` | Right-looking + **processor pinning** (each task runs on the GPU owning its output tile) + **lookahead** spawn ordering (critical-path `trsm`/`syrk` for column `k+1` submitted before bulk updates). **Recommended default.** |
-| `ll`    | Left-looking + **processor pinning**. Concentrates GEMM-based updates on the current column before factorizing (per Haidar et al. 2017, Algorithm 1). May be faster when GEMM throughput dominates. |
+| `rl_la` | Right-looking + **processor pinning** (each task runs on the GPU owning its output tile) + **lookahead** spawn ordering (critical-path `trsm`/`syrk` for column `k+1` submitted before bulk updates). |
+| `ll`    | Left-looking + **processor pinning**. Concentrates GEMM-based updates on the current column before factorizing (per Haidar et al. 2017, Algorithm 1). **Default** for the artifact. |
 
 Example sweep: `CHOLESKY_ALGO=rl,rl_la,ll`. The CSV and NDJSON perf log include an `algorithm` column/field.
 

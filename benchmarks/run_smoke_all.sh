@@ -4,7 +4,8 @@
 # (best-effort: steps that need unavailable hardware print [skip] and the script still exits 0).
 #
 # Covers every SC26 case-study app: Cholesky, Barnes–Hut, seam (+ Westrick driver),
-# game-of-life, heat-propagation, pass@k. See AD_BENCHMARKS.md for copy-paste one-liners.
+# game-of-life, heat-propagation, pass@k. Cholesky uses the same Dagger :ll path as
+# the paper; four visible GPUs; small CHOLESKY_NS. See AD_BENCHMARKS.md for one-liners.
 
 set -euo pipefail
 ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
@@ -62,11 +63,11 @@ echo "Docs: benchmarks/REVIEWER_PATHS.md, benchmarks/AD_BENCHMARKS.md, EXEMPLAR_
 echo "Full tier:  bash benchmarks/run_paper_all.sh"
 echo
 
-# --- Cholesky (1 GPU, small N; same driver as paper) ---
+# --- Cholesky: same Dagger :ll path as paper; 4 visible GPUs, small N (if <4 GPUs, driver skips) ---
 if command -v julia >/dev/null 2>&1; then
   (
     export LD_LIBRARY_PATH="$(_cholesky_clean_ld)"
-    export CHOLESKY_NUM_GPUS="${CHOLESKY_NUM_GPUS:-1}"
+    export CHOLESKY_ALGO="${CHOLESKY_ALGO:-ll}"
     export CHOLESKY_NS="${CHOLESKY_NS:-1024,2048}"
     export CHOLESKY_TRIALS="${CHOLESKY_TRIALS:-1}"
     export CHOLESKY_WARMUP="${CHOLESKY_WARMUP:-0}"

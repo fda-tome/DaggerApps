@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 # Paper-tier presets: exports **parameters only**, then runs the same canonical
 # invocations as `benchmarks/AD_BENCHMARKS.md` and `benchmarks/REVIEWER_PATHS.md`.
-# Expects resources from the paper / AD: e.g. 4 GPUs for Cholesky (override CHOLESKY_NUM_GPUS),
+# Expects resources from the paper / AD: e.g. four visible GPUs for Dagger Cholesky (left-looking :ll),
 # large memory for seam, pass@k API or Ollama, etc.
 #
 # Reduced (AE-friendly) preset for the same code paths:  benchmarks/run_smoke_all.sh
@@ -30,10 +30,10 @@ echo
 # Clear pass@k smoke-only skip/generate overrides (keep PASSK_TASK / PASSK_OUTPUT if set for a scoped paper run)
 unset PASSK_SKIP_GENERATE PASSK_GENERATED PASSK_API_BASE PASSK_API_KEY || true
 
-# --- Cholesky (NVIDIA/AMD/Intel/Apple: load first available GPU stack; default 4 GPUs) ---
+# --- Cholesky (NVIDIA/AMD/Intel/Apple: load first available GPU stack; four devices; :ll) ---
 (
   export LD_LIBRARY_PATH="$(_cholesky_clean_ld)"
-  export CHOLESKY_NUM_GPUS="${CHOLESKY_NUM_GPUS:-4}"
+  export CHOLESKY_ALGO="${CHOLESKY_ALGO:-ll}"
   export CHOLESKY_TRIALS="${CHOLESKY_TRIALS:-5}"
   export CHOLESKY_WARMUP="${CHOLESKY_WARMUP:-1}"
   export CHOLESKY_VENDOR="${CHOLESKY_VENDOR:-1}"

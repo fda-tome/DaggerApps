@@ -2,6 +2,8 @@
 
 A collection of Dagger.jl application folders (apps), plus optional benchmark scaffolding. Each app is intended to be a self‑contained Julia project; benchmarks are opt‑in and live under `benchmarks/`.
 
+**Version pins (SC26 AD, do not float):** Julia **1.12.4**; Dagger.jl **d9bf3ca494bdbca8e0e7e52501010da20f481bd9** (`[sources]` in non-stencil apps); registered **0.19.3** (tree `bd477dfc8eeeed574dbee78d10c92882e08073e7`) for stencil apps; DaggerApps integration branch `SC26_AD_AE` / tag `sc26-ad-freeze` (full SHA in the Artifact Description PDF and `git rev-parse HEAD`).
+
 **Reviewers (reduced vs full, all case studies):** **[`benchmarks/REVIEWER_PATHS.md`](benchmarks/REVIEWER_PATHS.md)** — two commands: `bash benchmarks/run_smoke_all.sh` (reduced) and `bash benchmarks/run_paper_all.sh` (paper tier). Details: [`benchmarks/AD_BENCHMARKS.md`](benchmarks/AD_BENCHMARKS.md).
 
 **Exemplar / SC26 clone path:** **[EXEMPLAR_QUICKSTART.md](EXEMPLAR_QUICKSTART.md)** (verify SHA → `Pkg.instantiate` → smoke → optional full). License: [LICENSE](LICENSE) (MIT).
@@ -78,13 +80,13 @@ Quick start (Barnes–Hut benchmark; optional `addprocs(N)` for distributed):
 julia --project=apps/barnes-hut -e 'include("benchmarks/scripts/barnes-hut.jl"); run_benchmark()'
 ```
 
-Quick start (GPU Cholesky benchmark; **four GPUs**; load a vendor package before `Dagger`):
+Quick start (GPU Cholesky benchmark; **four GPUs**; left-looking `:ll` is the default; load a vendor package before `Dagger`):
 
 ```bash
 julia --project=apps/gpu-cholesky -e 'using CUDA; using Dagger; include("benchmarks/scripts/gpu-cholesky.jl"); run_benchmark()'
 ```
 
-Results go to `benchmarks/results/gpu-cholesky/<timestamp>/`. See `apps/gpu-cholesky/README.md` for env vars (`CHOLESKY_K_MIN`, `CHOLESKY_K_MAX`, etc.).
+Results go to `benchmarks/results/gpu-cholesky/<timestamp>/`. See `apps/gpu-cholesky/README.md` for env vars (`CHOLESKY_ALGO`, `CHOLESKY_K_MIN`, `CHOLESKY_K_MAX`, etc.).
 
 ## External project usage
 

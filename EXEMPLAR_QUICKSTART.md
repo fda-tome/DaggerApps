@@ -30,7 +30,7 @@
    ```bash
    bash benchmarks/run_smoke_all.sh
    ```
-   The script must print: `=== run_smoke_all.sh finished ===`. Steps may log `[skip] ...` (e.g. Cholesky without a GPU — use `SKIP_CHOLESKY=1` to skip Cholesky on purpose on CPU-only hosts).
+   The script must print: `=== run_smoke_all.sh finished ===`. Steps may log `[skip] ...` (e.g. Dagger Cholesky needs **four** visible GPUs of one backend; fewer than four → `[skip]`, or set `SKIP_CHOLESKY=1` on CPU-only hosts).
 
 5. **Full paper tier (all apps)** — after you have the hardware/APIs for the original experiments:
    ```bash
@@ -44,7 +44,7 @@
 
 | Workload   | Check |
 |------------|--------|
-| Cholesky   | New results under `benchmarks/results/gpu-cholesky/` when a GPU stack is present; otherwise expect `[skip] gpu-cholesky` (or set `SKIP_CHOLESKY=1` on CPU-only hosts). |
+| Cholesky   | New results under `benchmarks/results/gpu-cholesky/` when **four** visible GPUs and the Cholesky block succeed; otherwise expect `[skip] gpu-cholesky` (or set `SKIP_CHOLESKY=1` on CPU-only or hosts with fewer than four GPUs). |
 | Barnes–Hut | `strong_scaling.csv` (or a run directory) under `benchmarks/results/barnes-hut/`. |
 | Seam       | New outputs under `benchmarks/results/seam-carving/`. |
 | Stencils   | New run dirs under `benchmarks/results/game-of-life/` and `.../heat-propagation/`. |
@@ -55,5 +55,5 @@ LLM pass@*k* scores are **not** expected to match a fixed number across runs.
 ## Known issues
 
 - **CUDA + `LD_LIBRARY_PATH`:** avoid prepending `/usr/local/cuda/lib64` when using CUDA.jl; `run_smoke_all.sh` / `run_paper_all.sh` strip it unless `CHOLESKY_KEEP_SYSTEM_CUDA_LD=1`.
-- **Single-GPU Cholesky:** the driver may remap the default algorithm; see `AD_BENCHMARKS.md` and `CHOLESKY_FORCE_RL_LA`. **CPU-only:** export `SKIP_CHOLESKY=1` before `run_smoke_all.sh` so the rest of the apps still run in one session.
+- **GPU count for Dagger Cholesky:** the benchmark is pinned to **four** visible devices (paper hardware); there is no Dagger 1--3-GPU path in this snapshot. On hosts with fewer than four GPUs, expect `[skip]` or set `SKIP_CHOLESKY=1` so the rest of the apps still run in one session.
 - **License:** see root `LICENSE` (MIT). Zenodo (optional at first AD) should archive the same tree as this tag.

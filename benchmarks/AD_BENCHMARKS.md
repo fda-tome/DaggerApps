@@ -25,10 +25,10 @@ AMD / Intel / Apple: load `AMDGPU`, `oneAPI`, or `Metal` instead of `CUDA` befor
 
 | Tier | Parameters (env) |
 |------|------------------|
-| **Reduced** | `CHOLESKY_NUM_GPUS=1` (or `2`/`3` if that matches visible devices), `CHOLESKY_NS=1024,2048`, `CHOLESKY_TRIALS=1`, `CHOLESKY_WARMUP=0`, `CHOLESKY_VENDOR=0` optional. With one GPU, default `:rl_la` is remapped to `:rl` (set `CHOLESKY_FORCE_RL_LA=1` to override). **Do not** put `/usr/local/cuda/lib64` on `LD_LIBRARY_PATH` when using CUDA.jl — it can crash the process; `run_smoke_all.sh` / `run_paper_all.sh` strip it unless `CHOLESKY_KEEP_SYSTEM_CUDA_LD=1`. |
-| **Paper** | Defaults in `gpu-cholesky.jl` / AD (`CHOLESKY_NUM_GPUS=4` on 4-GPU nodes, `CHOLESKY_K_MIN`/`CHOLESKY_K_MAX` sweep, `CHOLESKY_TRIALS=5`, etc.) |
+| **Reduced** | `CHOLESKY_ALGO=ll` (default; left-looking, paper-aligned), `CHOLESKY_NS=1024,2048`, `CHOLESKY_TRIALS=1`, `CHOLESKY_WARMUP=0`, `CHOLESKY_VENDOR=0` optional. The Dagger path **requires four visible GPU devices** of one backend; hosts with fewer than four devices error and are treated as `[skip]` by `run_smoke_all.sh`—set `SKIP_CHOLESKY=1` to skip on purpose. **Do not** put `/usr/local/cuda/lib64` on `LD_LIBRARY_PATH` when using CUDA.jl — it can crash the process; `run_smoke_all.sh` / `run_paper_all.sh` strip it unless `CHOLESKY_KEEP_SYSTEM_CUDA_LD=1`. |
+| **Paper** | `CHOLESKY_ALGO=ll` (or explicit sweep `rl,rl_la,ll`); same four-GPU hardware pin as the paper; `CHOLESKY_K_MIN`/`CHOLESKY_K_MAX` sweep, `CHOLESKY_TRIALS=5` via `run_paper_all.sh`, etc. |
 
-**Full sweep (same driver stack, optional):** after `cd` to repo root, `julia --project=apps/gpu-cholesky benchmarks/scripts/gpu-cholesky-sweep.jl` — uses the same `CHOLESKY_NUM_GPUS` logic as `gpu-cholesky.jl` for precompile.
+**Full sweep (same driver stack, optional):** after `cd` to repo root, `julia --project=apps/gpu-cholesky benchmarks/scripts/gpu-cholesky-sweep.jl` — same four-GPU requirement as `gpu-cholesky.jl`.
 
 ---
 

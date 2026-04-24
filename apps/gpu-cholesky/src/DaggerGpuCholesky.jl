@@ -39,8 +39,8 @@ export DEVICE_BACKENDS,
 Supported algorithm symbols for `bench_cholesky_once!(DA, algo)`:
 
 - `:rl`    – right-looking (original Dagger, no pinning / lookahead)
-- `:rl_la` – right-looking + processor pinning + lookahead (recommended)
-- `:ll`    – left-looking + processor pinning (GEMM-based updates)
+- `:rl_la` – right-looking + processor pinning + lookahead
+- `:ll`    – left-looking + processor pinning (GEMM-based updates; default for SC26 AD / paper narrative)
 """
 const CHOLESKY_ALGORITHMS = (:rl, :rl_la, :ll)
 
@@ -479,10 +479,10 @@ Run `cholesky(DA)` (real SPD symmetric DArray) and wait until factor chunks are 
 Out-of-place Dagger path should not destroy `DA` (see Dagger tests).
 
 When `algo` is supplied (`:rl`, `:rl_la`, `:ll`), the corresponding Dagger Cholesky variant
-is selected via `Dagger.CHOLESKY_ALGORITHM`. Default (no `algo`) uses `:rl_la`.
+is selected via `Dagger.CHOLESKY_ALGORITHM`. Default (no `algo`) uses `:ll` (left-looking; paper-aligned).
 """
 function bench_cholesky_once!(DA::Dagger.DArray{T,2}) where {T<:Real}
-    bench_cholesky_once!(DA, :rl_la)
+    bench_cholesky_once!(DA, :ll)
 end
 
 function bench_cholesky_once!(DA::Dagger.DArray{T,2}, algo::Symbol) where {T<:Real}
@@ -505,7 +505,7 @@ and cleanup after it.
 """
 function bench_cholesky_inplace_once!(
     DA_work::Dagger.DArray{T,2},
-    algo::Symbol=:rl_la,
+    algo::Symbol=:ll,
 ) where {T<:Real}
     algo in CHOLESKY_ALGORITHMS ||
         throw(ArgumentError("Unknown Cholesky algorithm: $algo. Use one of $CHOLESKY_ALGORITHMS"))

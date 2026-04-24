@@ -28,7 +28,7 @@
 #   CHOLESKY_INPLACE     if 1 (default), use cholesky! with copyto! from a template each rep
 #                        (like the vendor path). Set to 0 for the out-of-place cholesky path.
 #   CHOLESKY_ALGO        algorithm variant: rl (right-looking, original), rl_la (right-looking +
-#                        processor pinning + lookahead, default), ll (left-looking + pinning).
+#                        processor pinning + lookahead), ll (left-looking + pinning, default: matches paper).
 #                        Comma-separated list sweeps algorithms: rl,rl_la,ll
 
 using BenchmarkTools
@@ -77,7 +77,8 @@ function _parse_blocks_list()::Union{Nothing,Vector{Int}}
 end
 
 function _parse_algo_list()::Vector{Symbol}
-    raw = strip(get(ENV, "CHOLESKY_ALGO", "rl_la"))
+    # Default `ll` matches the paper’s left-looking blocked Cholesky narrative (SC26 AD).
+    raw = strip(get(ENV, "CHOLESKY_ALGO", "ll"))
     parts = split(raw, r"[,\s]+", keepempty=false)
     algos = Symbol[]
     for p in parts
@@ -86,7 +87,7 @@ function _parse_algo_list()::Vector{Symbol}
             error("Unknown CHOLESKY_ALGO value: $p. Use rl, rl_la, or ll.")
         push!(algos, s)
     end
-    isempty(algos) && push!(algos, :rl_la)
+    isempty(algos) && push!(algos, :ll)
     return algos
 end
 
@@ -235,7 +236,7 @@ With `CHOLESKY_PERF_LOG=1`, also appends one NDJSON record per `(N, block_size, 
 
 Use `CHOLESKY_BLOCKS=a,b,...` to sweep tile sizes in one run (vendor baseline is timed **once per N**).
 Use `CHOLESKY_INPLACE=1` for `cholesky!` + `copyto!` from a template each repetition (~2× `DArray` memory).
-Use `CHOLESKY_ALGO=rl,rl_la,ll` to sweep algorithm variants (default `rl_la`).
+Use `CHOLESKY_ALGO=rl,rl_la,ll` to sweep algorithm variants (default `ll`).
 """
 function run_benchmark()
     DG.resolve_device_strict()

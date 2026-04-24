@@ -83,7 +83,7 @@ Notes for gpu-cholesky:
 - Default matrix sizes are `N = 2^k` from `k = 10` through `18` (override with `CHOLESKY_K_MIN` / `CHOLESKY_K_MAX` or `CHOLESKY_NS`).
 - The script also records a **vendor baseline** (same loaded backend as Dagger: CUDA / AMDGPU / oneAPI / Metal): single-GPU `LinearAlgebra.cholesky!` on a dense GPU matrix matching the same SPD problem (`CHOLESKY_VENDOR`, `CHOLESKY_VENDOR_DEVICE`). CSV columns `dagger_*` vs `vendor_*` compare the two; vendor timing includes a per-trial `copyto!` refresh before `cholesky!`.
 - Optional **`CHOLESKY_PERF_LOG=1`**: Dagger TimespanLogging summaries per `(N, block_size)` as NDJSON (`perf_dagger.jsonl`; see `CHOLESKY_PERF_SCOPE`, `CHOLESKY_PERF_LOG_PATH`).
-- **`CHOLESKY_ALGO=rl_la`** (default): algorithm variant (`rl`, `rl_la`, `ll`); comma-separated list sweeps all in one run. `rl_la` adds processor pinning and lookahead spawn ordering; `ll` is a left-looking GEMM-based variant with pinning.
+- **`CHOLESKY_ALGO=ll`** (default, paper-aligned): algorithm variant (`rl`, `rl_la`, `ll`); comma-separated list sweeps all in one run. `ll` is the left-looking variant with pinning; `rl_la` adds processor pinning and lookahead spawn ordering.
 - **`CHOLESKY_BLOCKS`** / **`CHOLESKY_INPLACE`**: tile-size sweep and in-place `cholesky!` path (see script header / app README).
 - The app environment pins **Dagger.jl** to GitHub `master` via `Manifest.toml`.
 - Prefer `CHOLESKY_ELTYPE=Float32` for large `N` (memory).
