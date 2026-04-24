@@ -11,7 +11,9 @@
    git checkout sc26-ad-freeze
    git rev-parse HEAD
    ```
-   Expect: `a6a64edefd47617907df1fa7998008f6cdd83bdf` (tag `sc26-ad-freeze` should match after push).
+   After `git checkout sc26-ad-freeze`, `git rev-parse HEAD` must match the
+   **full commit SHA** in the SC26 Artifact Description PDF (tag `sc26-ad-freeze`
+   on `SC26_AD_AE` should point to that commit on the remote after you push).
 
 2. **Julia** — 1.12.4+ recommended (`juliaup add 1.12.4 && juliaup default 1.12.4`).
 
